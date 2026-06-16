@@ -200,4 +200,136 @@ export const PRESET_DOCUMENTS: AnalyzedDocument[] = [
       }
     ]
   },
+  {
+    id: "preset-apple-2024",
+    companyName: "Apple Inc.",
+    ticker: "AAPL",
+    period: "FY 2024",
+    documentType: "10-K",
+    fileName: "aapl_10k_2024_preset.pdf",
+    uploadedAt: "2026-06-14T23:52:00Z",
+    financials: {
+      revenue: 391035,
+      ebitda: 124500,
+      netIncome: 93736,
+      operatingCashFlow: 110000,
+      capex: 10500,
+      totalDebt: 106000,
+      cashAndEquivalents: 60000,
+      grossMargin: 46.2,
+      operatingMargin: 30.5,
+      ebitdaMargin: 31.8,
+      netMargin: 24.0,
+      eps: 6.16
+    },
+    mda: {
+      summary: "Apple delivered robust performance in FY2024, supported by record Services revenue (App Store, iCloud, Music) and steady iPhone sales. Management highlights expansion of Apple Intelligence features. Operating cash flows remained exceptionally strong, supporting aggressive capital returns.",
+      keyHighlights: [
+        "Services revenue reached an all-time high, representing 25% of total sales.",
+        "Launched Apple Intelligence, embedding generative AI across Apple platforms.",
+        "Returned over $90B to shareholders through share repurchases and dividends."
+      ]
+    },
+    toneAnalysis: {
+      sentiment: 0.65,
+      confidence: 0.82,
+      hedgingScore: 0.25,
+      analysisSummary: "Management maintains a stable, confident posture, highlighting ecosystem loyalty and recurring Services high-margin revenue. Minor caution expressed over antitrust litigation in the US and Europe.",
+      keyQuotes: [
+        {
+          quote: "Our active installed base of devices has reached a new record, reflecting unparalleled ecosystem lock-in and customer loyalty.",
+          context: "Ecosystem engagement",
+          tone: "confident"
+        },
+        {
+          quote: "While antitrust challenges in the EU present compliance adjustments, we are confident in the legal merits of our business practices.",
+          context: "Antitrust regulations",
+          tone: "cautious"
+        }
+      ]
+    },
+    riskFactors: [
+      {
+        category: "regulatory",
+        description: "Antitrust litigation and regulatory changes in the EU and US targeting App Store fees and ecosystem lock-in.",
+        severity: "high"
+      },
+      {
+        category: "market",
+        description: "Elongated consumer device upgrade cycles and intense competition in the premium smartphone segment.",
+        severity: "medium"
+      },
+      {
+        category: "operational",
+        description: "Highly concentrated supply chain dependencies in APAC regions, presenting geopolitical vulnerabilities.",
+        severity: "high"
+      }
+    ]
+  },
+  {
+    id: "preset-nvidia-2024",
+    companyName: "NVIDIA Corporation",
+    ticker: "NVDA",
+    period: "FY 2024",
+    documentType: "10-K",
+    fileName: "nvda_10k_2024_preset.pdf",
+    uploadedAt: "2026-06-14T23:53:00Z",
+    financials: {
+      revenue: 60922,
+      ebitda: 34500,
+      netIncome: 29760,
+      operatingCashFlow: 28100,
+      capex: 1200,
+      totalDebt: 11000,
+      cashAndEquivalents: 26000,
+      grossMargin: 72.7,
+      operatingMargin: 54.1,
+      ebitdaMargin: 56.6,
+      netMargin: 48.8,
+      eps: 11.93
+    },
+    mda: {
+      summary: "NVIDIA experienced historic growth in FY2024, driven by the explosive expansion of Generative AI across data centers. Hopper architecture GPUs (H100) saw massive demand. The company transitioned from a hardware component manufacturer to a full-stack data center platform supplier.",
+      keyHighlights: [
+        "Data Center revenue surged over 200% YoY, representing the core growth engine.",
+        "Gross margin expanded to 72.7% due to software integrations and strong pricing power.",
+        "Maintained minimal capital expenditures due to fabless manufacturing model."
+      ]
+    },
+    toneAnalysis: {
+      sentiment: 0.95,
+      confidence: 0.92,
+      hedgingScore: 0.12,
+      analysisSummary: "Management tone is highly bullish, bordering on euphoric. They cite secular demand shifts and technological lead. Minimal hedging, focusing on production supply ramp to meet backlog.",
+      keyQuotes: [
+        {
+          quote: "Generative AI has hit the tipping point. Demand is surging worldwide across companies, industries, and nations.",
+          context: "Market demand",
+          tone: "confident"
+        },
+        {
+          quote: "Our supply chain partners are ramping capacity aggressively, but we expect demand to exceed supply for the foreseeable future.",
+          context: "Production backlog",
+          tone: "confident"
+        }
+      ]
+    },
+    riskFactors: [
+      {
+        category: "operational",
+        description: "Supply bottlenecks and reliance on TSMC for advanced packaging (CoWoS) and semiconductor fabrication.",
+        severity: "high"
+      },
+      {
+        category: "regulatory",
+        description: "Export controls and trade restrictions imposed by the US government on shipping advanced computing chips to Asian markets.",
+        severity: "high"
+      },
+      {
+        category: "market",
+        description: "Hyperscalers (Microsoft, AWS, Google) developing custom in-house AI silicon, creating future customer churn risk.",
+        severity: "medium"
+      }
+    ]
+  }
 ];
