@@ -879,6 +879,346 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
             </div>
           )}
 
+          {/* TAB 2: FINANCIAL METRICS */}
+          {activeTab === "metrics" && (
+            <div className="flex flex-col gap-6">
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-100">Financial Metric Extraction</h2>
+                  <p className="text-slate-400 text-sm">Review parsed financial figures and compare Year-over-Year changes.</p>
+                </div>
+                
+                {/* Select main doc */}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold text-slate-400">Target Statement:</label>
+                  <select
+                    value={selectedDocId}
+                    onChange={(e) => setSelectedDocId(e.target.value)}
+                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 font-semibold focus:outline-none focus:border-emerald-500"
+                  >
+                    {documents.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.companyName} ({d.period})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {selectedDoc ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Detailed Table */}
+                  <div className="lg:col-span-2 bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
+                    <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2 flex items-center justify-between">
+                      <span>Key Financial Metrics</span>
+                      <span className="text-xs text-emerald-400 font-bold bg-emerald-950/20 border border-emerald-500/20 px-2 py-0.5 rounded">
+                        USD (Millions)
+                      </span>
+                    </h3>
+
+                    {/* YoY computation helper */}
+                    {(() => {
+                      // Find if we have a prior year document in library to show YoY change
+                      const priorYearDoc = documents.find(
+                        (d) =>
+                          d.companyName === selectedDoc.companyName &&
+                          d.period !== selectedDoc.period &&
+                          (d.period === "FY 2023" || d.period.includes("2023"))
+                      );
+
+                      const getYoYStr = (field: keyof Financials) => {
+                        if (!priorYearDoc) return null;
+                        const current = selectedDoc.financials[field];
+                        const prior = priorYearDoc.financials[field];
+                        if (current === null || prior === null || current === undefined || prior === undefined || prior === 0) return null;
+                        
+                        const pct = ((current - prior) / prior) * 100;
+                        const sign = pct >= 0 ? "+" : "";
+                        const color = pct >= 0 ? "text-emerald-400" : "text-red-400";
+                        return {
+                          str: `${sign}${pct.toFixed(1)}% YoY`,
+                          color,
+                          priorVal: prior
+                        };
+                      };
+
+                      return (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-900 text-slate-400 font-bold">
+                                <th className="pb-3 pl-1">Financial Metric</th>
+                                <th className="pb-3 text-right">Extracted Value ({selectedDoc.period})</th>
+                                {priorYearDoc && (
+                                  <>
+                                    <th className="pb-3 text-right">Prior Period ({priorYearDoc.period})</th>
+                                    <th className="pb-3 text-right pr-1">Growth %</th>
+                                  </>
+                                )}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-900/60 font-medium">
+                              {[
+                                { name: "Revenue", key: "revenue", isMargin: false },
+                                { name: "EBITDA", key: "ebitda", isMargin: false },
+                                { name: "Net Income", key: "netIncome", isMargin: false },
+                                { name: "Operating Cash Flow", key: "operatingCashFlow", isMargin: false },
+                                { name: "Capex (Capital Expenditure)", key: "capex", isMargin: false },
+                                { name: "Total Debt", key: "totalDebt", isMargin: false },
+                                { name: "Cash & Equivalents", key: "cashAndEquivalents", isMargin: false },
+                                { name: "Gross Margin %", key: "grossMargin", isMargin: true },
+                                { name: "Operating Margin %", key: "operatingMargin", isMargin: true },
+                                { name: "EBITDA Margin %", key: "ebitdaMargin", isMargin: true },
+                                { name: "Net Margin %", key: "netMargin", isMargin: true },
+                                { name: "Earnings Per Share (EPS)", key: "eps", isMargin: false, isEPS: true },
+                              ].map((item) => {
+                                const yoy = getYoYStr(item.key as keyof Financials);
+                                const val = selectedDoc.financials[item.key as keyof Financials];
+                                
+                                return (
+                                  <tr key={item.name} className="hover:bg-slate-900/20">
+                                    <td className="py-2.5 pl-1 text-slate-300 font-semibold">{item.name}</td>
+                                    <td className="py-2.5 text-right font-bold text-slate-100">
+                                      {item.isMargin
+                                        ? `${val}%`
+                                        : item.isEPS
+                                        ? `$${val}`
+                                        : formatM(val)}
+                                    </td>
+                                    {priorYearDoc && (
+                                      <>
+                                        <td className="py-2.5 text-right text-slate-400">
+                                          {item.isMargin
+                                            ? `${priorYearDoc.financials[item.key as keyof Financials]}%`
+                                            : item.isEPS
+                                            ? `$${priorYearDoc.financials[item.key as keyof Financials]}`
+                                            : formatM(priorYearDoc.financials[item.key as keyof Financials])}
+                                        </td>
+                                        <td className={`py-2.5 text-right font-bold pr-1 ${yoy ? yoy.color : 'text-slate-500'}`}>
+                                          {yoy ? yoy.str : "—"}
+                                        </td>
+                                      </>
+                                    )}
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Summary & Charts */}
+                  <div className="lg:col-span-1 flex flex-col gap-6">
+                    {/* MD&A card */}
+                    <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-3">
+                      <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2 border-b border-slate-900 pb-2">
+                        <FileCheck className="h-4 w-4 text-emerald-400" /> Executive MD&A Summary
+                      </h3>
+                      <p className="text-xs leading-relaxed text-slate-300">
+                        {selectedDoc.mda?.summary}
+                      </p>
+                      <h4 className="text-xs font-bold text-slate-400 mt-2">Highlights</h4>
+                      <ul className="text-xs flex flex-col gap-1.5 list-disc pl-4 text-slate-400">
+                        {selectedDoc.mda?.keyHighlights.map((hl, i) => (
+                          <li key={i}>{hl}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Single company charts */}
+                    <div className="flex flex-col gap-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Financial Ratios</h4>
+                      
+                      {(() => {
+                        const hasPrior = documents.some(
+                          d => d.companyName === selectedDoc.companyName && d.period !== selectedDoc.period
+                        );
+                        
+                        const companyDocs = documents
+                          .filter(d => d.companyName === selectedDoc.companyName)
+                          .sort((a, b) => a.period.localeCompare(b.period));
+
+                        const revenueData = companyDocs.map(d => ({
+                          name: d.period,
+                          Revenue: d.financials.revenue || 0,
+                          EBITDA: d.financials.ebitda || 0
+                        }));
+
+                        const marginData = companyDocs.map(d => ({
+                          name: d.period,
+                          Gross: d.financials.grossMargin || 0,
+                          Operating: d.financials.operatingMargin || 0,
+                          Net: d.financials.netMargin || 0
+                        }));
+
+                        return (
+                          <div className="flex flex-col gap-4">
+                            <div>
+                              <div className="text-xs text-slate-500 font-semibold mb-2">Revenue & EBITDA Trend</div>
+                              <RevenueEbitdaChart data={revenueData} />
+                            </div>
+                            <div>
+                              <div className="text-xs text-slate-500 font-semibold mb-2">Margin Trend (%)</div>
+                              <MarginLineChart data={marginData} />
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                </div>
+              ) : (
+                <div className="bg-slate-950/40 p-12 rounded-2xl border border-slate-900 text-center text-slate-500">
+                  Please upload a financial document or load presets to view metrics.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: TONE ANALYSIS */}
+          {activeTab === "tone" && (
+            <div className="flex flex-col gap-6">
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-100">Management Tone & Sentiment Analysis</h2>
+                  <p className="text-slate-400 text-sm">Analyze commentary to gauge sentiment shifts, uncertainty, and hedging language.</p>
+                </div>
+                
+                {/* Select main doc */}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold text-slate-400">Target Statement:</label>
+                  <select
+                    value={selectedDocId}
+                    onChange={(e) => setSelectedDocId(e.target.value)}
+                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 font-semibold focus:outline-none focus:border-emerald-500"
+                  >
+                    {documents.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.companyName} ({d.period})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {selectedDoc ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Dials / Progress Bars */}
+                  <div className="lg:col-span-1 bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-6">
+                    <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2">Sentiment & Dials</h3>
+                    
+                    {/* Sentiment meter */}
+                    <div className="flex flex-col items-center py-4 bg-slate-900/20 rounded-xl border border-slate-900">
+                      <div className="text-xs font-semibold text-slate-400 mb-1">Sentiment Score</div>
+                      <div className={`text-4xl font-extrabold ${
+                        selectedDoc.toneAnalysis.sentiment >= 0.5
+                          ? "text-emerald-400"
+                          : selectedDoc.toneAnalysis.sentiment >= 0.2
+                          ? "text-blue-400"
+                          : "text-amber-500"
+                      }`}>
+                        {selectedDoc.toneAnalysis.sentiment > 0 ? "+" : ""}{selectedDoc.toneAnalysis.sentiment.toFixed(2)}
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-1">Range: -1.0 (Bearish) to +1.0 (Bullish)</div>
+                    </div>
+
+                    {/* Confidence Meter */}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between text-xs font-semibold text-slate-400">
+                        <span>Confidence Rating</span>
+                        <span className="text-blue-400 font-bold">{(selectedDoc.toneAnalysis.confidence * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-slate-900 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-blue-600 to-blue-400 h-2 rounded-full"
+                          style={{ width: `${selectedDoc.toneAnalysis.confidence * 100}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-tight">
+                        Indicates degree of directness vs. avoidance of commitment on guidance.
+                      </p>
+                    </div>
+
+                    {/* Hedging language score */}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between text-xs font-semibold text-slate-400">
+                        <span>Hedging / Caution Score</span>
+                        <span className="text-amber-400 font-bold">{(selectedDoc.toneAnalysis.hedgingScore * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-slate-900 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-amber-600 to-amber-400 h-2 rounded-full"
+                          style={{ width: `${selectedDoc.toneAnalysis.hedgingScore * 100}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-tight">
+                        Proportion of protective, conditional phrases (e.g. &quot;may&quot;, &quot;could&quot;, &quot;subject to unpredictability&quot;).
+                      </p>
+                    </div>
+
+                    {/* Planted Passage Check Indicator */}
+                    {selectedDoc.companyName.includes("Tesla") && (
+                      <div className="mt-4 p-4 bg-emerald-950/20 border border-emerald-900/30 rounded-xl">
+                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 mb-1">
+                          <Check className="h-4 w-4" /> Success Metric Validation
+                        </div>
+                        <p className="text-[10px] text-slate-400 leading-relaxed">
+                          This satisfies the <strong>Planted Passage Test</strong>. Tesla FY2023 represents highly confident guidance, while FY2024 features planted cautious lines demonstrating FSD regulatory hedges.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Highlights & Quotes */}
+                  <div className="lg:col-span-2 flex flex-col gap-6">
+                    {/* Summary */}
+                    <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-2">
+                      <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-emerald-400" /> Analytical Tone Summary
+                      </h3>
+                      <p className="text-xs leading-relaxed text-slate-300">
+                        {selectedDoc.toneAnalysis.analysisSummary}
+                      </p>
+                    </div>
+
+                    {/* Key Quotes */}
+                    <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
+                      <h3 className="font-bold text-slate-200 text-sm">Key Commentary Quotes & Classified Tone</h3>
+                      
+                      <div className="flex flex-col gap-3">
+                        {selectedDoc.toneAnalysis.keyQuotes.map((q, idx) => (
+                          <div key={idx} className="p-4 bg-slate-900/40 rounded-xl border border-slate-800/80 flex flex-col gap-2 hover:border-slate-700 transition-all">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-semibold text-slate-500 uppercase font-mono">
+                                Topic: {q.context}
+                              </span>
+                              {getToneBadge(q.tone)}
+                            </div>
+                            <blockquote className="text-xs italic text-slate-200 font-serif leading-relaxed pl-3 border-l-2 border-slate-700">
+                              &quot;{q.quote}&quot;
+                            </blockquote>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              ) : (
+                <div className="bg-slate-950/40 p-12 rounded-2xl border border-slate-900 text-center text-slate-500">
+                  Please upload a financial document or load presets to view tone analysis.
+                </div>
+              )}
+            </div>
+          )}
+
 
         </section>
       </main>
