@@ -333,3 +333,46 @@ export const PRESET_DOCUMENTS: AnalyzedDocument[] = [
     ]
   }
 ];
+
+export const PRESET_COMPARISON = {
+  toneComparison: {
+    sentimentShift: -0.60,
+    confidenceShift: -0.46,
+    comparisonText: "Between FY 2023 and FY 2024, Tesla's management tone shifted from highly optimistic and expansion-oriented to extremely cautious and conservative. While FY 2023 commentary was filled with claims of efficiency and manufacturing excellence, FY 2024 introduces heavy hedging language, mentioning substantial execution risks, compute bottlenecks, and unpredictable regulatory approvals for their core autonomous vehicle (FSD) strategy. This signals a clear pivot from straightforward scaling to managing active operational constraints.",
+    toneChangeFlag: "cautious_shift"
+  },
+  riskComparison: [
+    {
+      risk: "Price compression from low-cost competitors",
+      category: "market",
+      priorSeverity: "medium",
+      currentSeverity: "high",
+      status: "escalated",
+      notes: "Escalated from medium to high severity due to aggressive pricing strategies by low-cost Chinese EV brands in key markets."
+    },
+    {
+      risk: "Manufacturing complexity and bottlenecks for Cybertruck",
+      category: "operational",
+      priorSeverity: "high",
+      currentSeverity: "medium",
+      status: "de-escalated",
+      notes: "De-escalated to medium as the production line stabilized throughout 2024, though volume remains limited."
+    },
+    {
+      risk: "High capital requirements for Gigafactory expansions",
+      category: "financial",
+      priorSeverity: "medium",
+      currentSeverity: "low",
+      status: "de-escalated",
+      notes: "De-escalated as major construction phases concluded and spending shifted from civil engineering to computational clusters."
+    },
+    {
+      risk: "Full Self-Driving (FSD) AI regulatory investigations and specialized GPU compute delays",
+      category: "regulatory",
+      priorSeverity: "none",
+      currentSeverity: "high",
+      status: "new",
+      notes: "New Risk Added in Year 2: Planted risk factor highlighting FSD liability, regulatory scrutinies, and computing supply dependencies."
+    }
+  ]
+};
