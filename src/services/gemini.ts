@@ -140,6 +140,50 @@ Return ONLY the valid JSON object.`;
     const textResponse = result.response.text();
     return cleanAndParseJSON(textResponse);
   }
+
+  // Generates an investment memo
+  async generateInvestmentMemo(documents: any[], targetCompany: string): Promise<string> {
+    const model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const prompt = `You are a Senior Investment Analyst at a top-tier hedge fund.
+Create a highly professional, structured Investment Memo for ${targetCompany || "the target company"}.
+You must ground the entire memo in the extracted financial figures and risks provided. Do not make up any numbers. Cite specific revenues, margins, cash flows, and risk factors from the data provided.
+
+Documents / Data Available:
+${JSON.stringify(documents)}
+
+Format your response in clean Markdown with the following exact structure:
+# Investment Memo: [Company Name]
+**Date**: [Current Date]
+**Analyst**: AI Financial Analyst
+
+## 1. Executive Summary & Investment Thesis
+Provide a clear, high-level summary of the company, its current position, and your overall investment stance (Bullish, Bearish, or Neutral).
+
+## 2. Financial Profile & Key Metrics
+Summarize the financial health of the company. Address:
+- Revenue growth and margin profiles (gross, operating, EBITDA margins).
+- Cash flow dynamics (operating cash flow vs Capex, free cash flow conversion).
+- Debt levels, liquidity (cash), and capital allocation strategy.
+Include a small markdown table of the key metrics across the available periods.
+
+## 3. Bull Case
+Formulate 2-3 strong arguments for why this company is an attractive investment. Ground this in the company's positive financial metrics, expansion plans, margins, or confident management tone.
+
+## 4. Bear Case
+Formulate 2-3 strong arguments against investing in this company. Ground this in high debt, deteriorating margins, heavy capital expenditures, cautious/hedged management commentary, or market risks.
+
+## 5. Key Risks to Monitor
+Categorize and highlight the most critical risks (regulatory, operational, financial) that could derail the investment thesis.
+
+## 6. Critical Questions to Investigate
+Formulate 4-5 tough questions that a buy-side analyst would ask the management team on the next earnings call or in a private meeting, based on discrepancies in the numbers, risk disclosures, or hedging language.
+
+Make sure the tone is professional, critical, and objective.`;
+
+    const result = await callWithRetry(() => model.generateContent(prompt));
+    return result.response.text();
+  }
 }
 
 function cleanAndParseJSON(text: string): any {
