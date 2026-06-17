@@ -32,7 +32,7 @@ export class GeminiService {
     const prompt = `You are a Senior Financial Analyst and Investment Manager.
 Analyze the attached financial document (reporting period: ${period}, type: ${docType}).
 
-Your task is to extract, structure, and analyze the document contents. Return a single JSON object that perfectly conforms to the schema below. Make sure to identify all named financial figures, calculate margins if not explicitly stated, analyze management tone, and extract key risk factors.
+Your task is to extract, structure, and analyze the document contents. Return a single JSON object that perfectly conforms to the schema below. Identify named financial figures, calculate margins if they can be derived from stated figures, analyze management tone, capture forward guidance, and ground the output in exact document language wherever possible.
 
 JSON Schema:
 {
@@ -58,6 +58,14 @@ JSON Schema:
     "summary": "1-2 paragraph analytical summary of the Management Discussion & Analysis or presentation.",
     "keyHighlights": ["highlight statement 1", "highlight statement 2", "highlight statement 3"]
   },
+  "forwardGuidance": {
+    "revenueGuidance": "Revenue outlook or guidance language, or null",
+    "marginGuidance": "Margin outlook or guidance language, or null",
+    "capexGuidance": "Capex / investment outlook or guidance language, or null",
+    "managementOutlook": "Short paragraph summarizing how management framed the next period, or null",
+    "confidenceLevel": "high" | "medium" | "low" | null,
+    "keyGuidanceQuotes": ["Exact guidance quote 1", "Exact guidance quote 2"]
+  },
   "toneAnalysis": {
     "sentiment": number, // between -1.0 (very pessimistic/bearish) and 1.0 (very optimistic/bullish)
     "confidence": number, // between 0.0 (uncertain/hedging) and 1.0 (completely certain/direct)
@@ -75,21 +83,45 @@ JSON Schema:
     {
       "category": "market" | "operational" | "financial" | "regulatory" | "strategic" | "other",
       "description": "Clear explanation of the specific risk factor mentioned in the document",
-      "severity": "high" | "medium" | "low"
+      "severity": "high" | "medium" | "low",
+      "supportingQuotes": ["Exact supporting sentence 1", "Exact supporting sentence 2"]
     }
-  ]
+  ],
+  "sourceEvidence": {
+    "financialEvidence": [
+      {
+        "metric": "revenue" | "ebitda" | "netIncome" | "operatingCashFlow" | "capex" | "totalDebt" | "cashAndEquivalents" | "grossMargin" | "operatingMargin" | "ebitdaMargin" | "netMargin" | "eps",
+        "quote": "Exact sentence supporting the metric",
+        "value": "Original value as stated in the document, or null"
+      }
+    ],
+    "riskEvidence": ["Exact risk quote 1", "Exact risk quote 2"],
+    "memoEvidence": ["Exact sentence useful for a grounded investment memo"]
+  }
 }
 
 Strict requirements:
 1. Do not invent any numbers. If a financial figure is not mentioned, use null.
-2. If the document is a transcript, focus on extracting the guidance figures, tone, and Q&A insights.
-3. Keep the output clean. Just the raw JSON.`;
+2. Do not fabricate quotes or evidence. If exact support is unavailable, use an empty array or null.
+3. If the document is a transcript, focus on guidance figures, tone, forward outlook, and Q&A insights.
+4. Keep the output clean. Return raw JSON only.`;
 
     parts.push({ text: prompt });
 
     const result = await callWithRetry(() => model.generateContent(parts));
     const textResponse = result.response.text();
-    return cleanAndParseJSON(textResponse);
+
+    if (!textResponse.trim()) {
+      throw new Error("Gemini returned an empty analysis response.");
+    }
+
+    try {
+      return cleanAndParseJSON(textResponse);
+    } catch (error) {
+      throw new Error(
+        `Gemini returned an unreadable analysis payload for ${period} ${docType}. ${(error as Error).message}`
+      );
+    }
   }
 
   // Compares two periods for risks and tone
@@ -147,7 +179,7 @@ Return ONLY the valid JSON object.`;
 
     const prompt = `You are a Senior Investment Analyst at a top-tier hedge fund.
 Create a highly professional, structured Investment Memo for ${targetCompany || "the target company"}.
-You must ground the entire memo in the extracted financial figures and risks provided. Do not make up any numbers. Cite specific revenues, margins, cash flows, and risk factors from the data provided.
+You must ground the entire memo in the extracted financial figures, forward guidance, risk factors, and source evidence provided. Do not make up any numbers. Cite specific revenues, margins, cash flows, risk factors, and management quotes from the supplied data. If the evidence is weak or incomplete, say so explicitly instead of inventing support.
 
 Documents / Data Available:
 ${JSON.stringify(documents)}
@@ -157,26 +189,27 @@ Format your response in clean Markdown with the following exact structure:
 **Date**: [Current Date]
 **Analyst**: AI Financial Analyst
 
-## 1. Executive Summary & Investment Thesis
-Provide a clear, high-level summary of the company, its current position, and your overall investment stance (Bullish, Bearish, or Neutral).
+## 1. Company Overview
+Provide a concise overview of the business, its current operating position, and your overall investment stance (Bullish, Bearish, or Neutral).
 
-## 2. Financial Profile & Key Metrics
+## 2. Financial Summary
 Summarize the financial health of the company. Address:
 - Revenue growth and margin profiles (gross, operating, EBITDA margins).
 - Cash flow dynamics (operating cash flow vs Capex, free cash flow conversion).
 - Debt levels, liquidity (cash), and capital allocation strategy.
+- Forward guidance, management outlook, and whether tone/evidence support confidence in the next period.
 Include a small markdown table of the key metrics across the available periods.
 
 ## 3. Bull Case
-Formulate 2-3 strong arguments for why this company is an attractive investment. Ground this in the company's positive financial metrics, expansion plans, margins, or confident management tone.
+Formulate 2-3 strong arguments for why this company is an attractive investment. Ground this in the company's positive financial metrics, expansion plans, margins, forward guidance, or confident management tone.
 
 ## 4. Bear Case
-Formulate 2-3 strong arguments against investing in this company. Ground this in high debt, deteriorating margins, heavy capital expenditures, cautious/hedged management commentary, or market risks.
+Formulate 2-3 strong arguments against investing in this company. Ground this in high debt, deteriorating margins, heavy capital expenditures, cautious/hedged management commentary, weak guidance, or market risks.
 
 ## 5. Key Risks to Monitor
-Categorize and highlight the most critical risks (regulatory, operational, financial) that could derail the investment thesis.
+Categorize and highlight the most critical risks (regulatory, operational, financial) that could derail the investment thesis. Reference the provided risk evidence or supporting quotes where useful.
 
-## 6. Critical Questions to Investigate
+## 6. Questions to Investigate
 Formulate 4-5 tough questions that a buy-side analyst would ask the management team on the next earnings call or in a private meeting, based on discrepancies in the numbers, risk disclosures, or hedging language.
 
 Make sure the tone is professional, critical, and objective.`;
@@ -188,6 +221,10 @@ Make sure the tone is professional, critical, and objective.`;
 
 function cleanAndParseJSON(text: string): any {
   let cleanText = text.trim();
+
+  if (!cleanText) {
+    throw new Error("Gemini returned an empty JSON payload.");
+  }
   
   // Remove markdown code block fences if present
   if (cleanText.startsWith("```json")) {
@@ -212,7 +249,10 @@ function cleanAndParseJSON(text: string): any {
       return JSON.parse(repaired);
     } catch (repairError) {
       console.error("Failed to repair JSON:", repairError);
-      throw new Error(`Invalid JSON format returned by Gemini: ${(e as Error).message}`);
+      const preview = cleanText.slice(0, 240).replace(/\s+/g, " ");
+      throw new Error(
+        `Gemini returned malformed JSON. Initial parse error: ${(e as Error).message}. Response preview: ${preview}`
+      );
     }
   }
 }

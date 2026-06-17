@@ -1,12 +1,72 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GeminiService } from "../../../services/gemini";
 
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const SUPPORTED_MIME_TYPES = new Set(["application/pdf", "text/plain"]);
+const EXTENSION_TO_MIME: Record<string, string> = {
+  pdf: "application/pdf",
+  txt: "text/plain",
+};
+
+function resolveMimeType(file: File): string | null {
+  if (file.type && SUPPORTED_MIME_TYPES.has(file.type)) {
+    return file.type;
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (!extension) {
+    return null;
+  }
+
+  return EXTENSION_TO_MIME[extension] || null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File;
-    if (!file) {
-      return NextResponse.json({ error: "No file was uploaded." }, { status: 400 });
+    const fileEntry = formData.get("file");
+
+    if (!(fileEntry instanceof File)) {
+      return NextResponse.json(
+        {
+          error: "A PDF or TXT file is required.",
+          details: "Attach the document in the 'file' field before submitting the analysis request.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const file = fileEntry;
+
+    if (file.size === 0) {
+      return NextResponse.json(
+        {
+          error: "The uploaded file is empty.",
+          details: "Please upload a non-empty PDF or TXT filing/transcript.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        {
+          error: "The uploaded file exceeds the 50MB limit.",
+          details: `Received ${(file.size / (1024 * 1024)).toFixed(1)}MB. Please upload a smaller PDF or TXT document.`,
+        },
+        { status: 413 }
+      );
+    }
+
+    const mimeType = resolveMimeType(file);
+    if (!mimeType) {
+      return NextResponse.json(
+        {
+          error: "Unsupported file type.",
+          details: "Only PDF (.pdf) and plain text (.txt) financial documents are supported.",
+        },
+        { status: 415 }
+      );
     }
 
     // Resolve API Key
@@ -30,7 +90,6 @@ export async function POST(req: NextRequest) {
     // Convert file to Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const mimeType = file.type;
 
     const service = new GeminiService(apiKey);
     const result = await service.analyzeDocument(buffer, mimeType, period, documentType);

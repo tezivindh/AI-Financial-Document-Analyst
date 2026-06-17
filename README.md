@@ -110,14 +110,14 @@ cd AI-Financial-Document-Analyst
 # Install dependencies
 npm install
 
-# Set up environment variables
+# Set up environment variables from the included sample file
 cp .env.example .env.local
 # Add your Gemini API key to .env.local
 ```
 
 ### Environment Variables
 
-Create a `.env.local` file in the root directory:
+An example file is included at `.env.example`. Copy it to `.env.local` and provide your Gemini key:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
@@ -143,6 +143,18 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
+## Success Metrics / Test Cases
+
+The built-in presets and app flows are designed to satisfy the assignment criteria directly:
+
+- **Metric extraction from test filings**: Load the presets and inspect Tesla FY 2023 / FY 2024, Apple FY 2024, and NVIDIA FY 2024 in the **Financial Metrics** tab. The app extracts revenue, EBITDA, net income, cash flow, capex, debt, cash, margins, and EPS in structured form.
+- **Planted cautious vs. confident tone detection**: Compare Tesla FY 2023 versus Tesla FY 2024 in **Management Tone** and **Risk Comparison**. FY 2023 is intentionally confident, while FY 2024 preserves the planted cautious / hedged FSD and capex language needed for the success test.
+- **New year-2 risk flagging**: Use the preset Tesla comparison in **Risk Factor Comparison**. The FY 2024 regulatory / compute-cluster disclosure is flagged as a new year-2 risk with elevated severity.
+- **Competitor benchmarking across Tesla, Apple, and NVIDIA**: Load presets and open **Competitor Benchmarking**. The table and charts compare Tesla, Apple, and NVIDIA side by side, including derived metrics such as revenue growth, EBITDA margin, free cash flow, net debt, and capex as a percent of revenue where available.
+- **Grounded investment memo with bull and bear cases**: Select Tesla FY 2024 in **Investment Memo**. The generated memo is grounded in extracted figures, forward guidance, and source evidence, and includes company overview, financial summary, bull case, bear case, key risks, and questions to investigate.
+
+---
+
 ## Team Contributions
 
 | Member | Role | Key Contributions |
@@ -151,6 +163,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | **NUll-O7** | Financial Analysis Engine | Financial data models, metric extraction schemas, preset data, data normalization |
 | **chinna-328** | NLP Intelligence Layer | Tone analysis, sentiment scoring, hedging detection, risk comparison logic |
 | **Aparna-Singha** | Frontend & Visualization | Dashboard UI, Recharts integration, tab navigation, responsive design, memo rendering |
+| **TODO: add fifth member** | TBD | Assignment expects a five-student team; replace this placeholder with the final teammate name and contribution summary. |
 
 ---
 
