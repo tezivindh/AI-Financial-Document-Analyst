@@ -91,6 +91,55 @@ Strict requirements:
     const textResponse = result.response.text();
     return cleanAndParseJSON(textResponse);
   }
+
+  // Compares two periods for risks and tone
+  async comparePeriods(doc1: any, doc2: any): Promise<any> {
+    const model = this.genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: { responseMimeType: "application/json" },
+    });
+
+    const prompt = `You are a Senior Financial Analyst comparing two financial disclosure periods for the same company:
+Prior Period: ${doc1.period} (${doc1.documentType})
+Current Period: ${doc2.period} (${doc2.documentType})
+
+Compare the risk factors and management tone between these two periods. Identify which risks in the Current Period are brand new (did not exist or weren't disclosed in the Prior Period), which ones have escalated in severity, and which ones are unchanged or resolved.
+Also compare the management commentary tone, noting any significant sentiment/confidence shifts (e.g. from highly confident to cautious).
+
+Prior Period Data:
+- Risks: ${JSON.stringify(doc1.riskFactors)}
+- Tone Summary: ${JSON.stringify(doc1.toneAnalysis)}
+
+Current Period Data:
+- Risks: ${JSON.stringify(doc2.riskFactors)}
+- Tone Summary: ${JSON.stringify(doc2.toneAnalysis)}
+
+Output a single JSON object conforming to the schema below:
+{
+  "toneComparison": {
+    "sentimentShift": number, // current sentiment minus prior sentiment
+    "confidenceShift": number, // current confidence minus prior confidence
+    "comparisonText": "Paragraph detailing how the tone, sentiment, and management vocabulary shifted between the periods. Be specific.",
+    "toneChangeFlag": "cautious_shift" | "confident_shift" | "stable" | "hedged_shift"
+  },
+  "riskComparison": [
+    {
+      "risk": "Brief description of the risk",
+      "category": "market" | "operational" | "financial" | "regulatory" | "strategic" | "other",
+      "priorSeverity": "high" | "medium" | "low" | "none", // 'none' if brand new
+      "currentSeverity": "high" | "medium" | "low",
+      "status": "new" | "escalated" | "unchanged" | "de-escalated",
+      "notes": "Brief explanation of why it is flagged as such (e.g. 'New regulatory compliance risk added due to European regulations' or 'Escalated from medium to high severity due to interest rate spikes')"
+    }
+  ]
+}
+
+Return ONLY the valid JSON object.`;
+
+    const result = await callWithRetry(() => model.generateContent(prompt));
+    const textResponse = result.response.text();
+    return cleanAndParseJSON(textResponse);
+  }
 }
 
 function cleanAndParseJSON(text: string): any {
