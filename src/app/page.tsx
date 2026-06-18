@@ -1219,6 +1219,332 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
             </div>
           )}
 
+          {/* TAB 4: RISK FACTORS COMPARISON */}
+          {activeTab === "risks" && (
+            <div className="flex flex-col gap-6">
+              
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-100">Period-over-Period Risk Comparison</h2>
+                  <p className="text-slate-400 text-sm">Compare disclosures across periods and automatically flag brand new or escalated risks.</p>
+                </div>
+
+                {/* Compare selectors */}
+                <div className="flex flex-wrap items-center gap-3 bg-slate-900/40 p-2 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-slate-400 font-medium">Prior:</span>
+                    <select
+                      value={compareDocId1}
+                      onChange={(e) => setCompareDocId1(e.target.value)}
+                      className="bg-slate-950 border border-slate-850 rounded px-2.5 py-1 text-xs text-slate-200 font-semibold focus:outline-none"
+                    >
+                      <option value="">— Select —</option>
+                      {documents.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.companyName} ({d.period})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-slate-400 font-medium">Current:</span>
+                    <select
+                      value={compareDocId2}
+                      onChange={(e) => setCompareDocId2(e.target.value)}
+                      className="bg-slate-950 border border-slate-850 rounded px-2.5 py-1 text-xs text-slate-200 font-semibold focus:outline-none"
+                    >
+                      <option value="">— Select —</option>
+                      {documents.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.companyName} ({d.period})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={handleCompare}
+                    disabled={comparing || !compareDocId1 || !compareDocId2}
+                    className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold text-xs px-3 py-1 rounded transition-all"
+                  >
+                    {comparing ? "Comparing..." : "Compare"}
+                  </button>
+                </div>
+              </div>
+
+              {comparisonResult ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Tone shift card */}
+                  <div className="lg:col-span-1 bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
+                    <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-emerald-400" /> Executive Tone Shift
+                    </h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-slate-900/20 border border-slate-900 rounded-xl text-center">
+                        <div className="text-[10px] text-slate-400 font-semibold">Sentiment Shift</div>
+                        <div className={`text-xl font-bold mt-1 ${
+                          comparisonResult.toneComparison.sentimentShift < 0 ? "text-red-400" : "text-emerald-400"
+                        }`}>
+                          {comparisonResult.toneComparison.sentimentShift > 0 ? "+" : ""}
+                          {comparisonResult.toneComparison.sentimentShift.toFixed(2)}
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-slate-900/20 border border-slate-900 rounded-xl text-center">
+                        <div className="text-[10px] text-slate-400 font-semibold">Confidence Shift</div>
+                        <div className={`text-xl font-bold mt-1 ${
+                          comparisonResult.toneComparison.confidenceShift < 0 ? "text-red-400" : "text-emerald-400"
+                        }`}>
+                          {comparisonResult.toneComparison.confidenceShift > 0 ? "+" : ""}
+                          {Math.round(comparisonResult.toneComparison.confidenceShift * 100)}%
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <div className="text-xs font-semibold text-slate-400">Shift Classification</div>
+                      {comparisonResult.toneComparison.toneChangeFlag === "cautious_shift" ? (
+                        <span className="w-fit px-3 py-1 text-xs font-bold rounded-lg bg-red-950/30 text-red-400 border border-red-500/20 animate-pulse">
+                          CAUTIOUS TONE SHIFT DETECTED
+                        </span>
+                      ) : (
+                        <span className="w-fit px-3 py-1 text-xs font-bold rounded-lg bg-emerald-950/30 text-emerald-400 border border-emerald-500/20">
+                          STABLE / CONFIDENT TONE
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-xs text-slate-300 leading-relaxed mt-2 bg-slate-900/10 p-3 rounded-lg border border-slate-900">
+                      {comparisonResult.toneComparison.comparisonText}
+                    </div>
+                  </div>
+
+                  {/* Risks changes grid */}
+                  <div className="lg:col-span-2 bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
+                    <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2 flex items-center justify-between">
+                      <span>Categorized Risk Shifts</span>
+                      <span className="text-xs bg-red-950/20 text-red-400 px-2 py-0.5 rounded border border-red-500/20 font-bold">
+                        PoP Map
+                      </span>
+                    </h3>
+
+                    <div className="flex flex-col gap-3">
+                      {comparisonResult.riskComparison.map((rc: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className={`p-4 rounded-xl border transition-all ${
+                            rc.status === "new"
+                              ? "bg-red-950/15 border-red-500/20 hover:border-red-500/40"
+                              : rc.status === "escalated"
+                              ? "bg-amber-950/10 border-amber-500/20 hover:border-amber-500/40"
+                              : "bg-slate-900/20 border-slate-800 hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider font-mono text-slate-400">
+                              Category: {rc.category}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {rc.status === "new" && (
+                                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-red-600 text-white animate-pulse">
+                                  NEW RISK
+                                </span>
+                              )}
+                              {rc.status === "escalated" && (
+                                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-500 text-slate-950">
+                                  ESCALATED
+                                </span>
+                              )}
+                              {rc.status === "de-escalated" && (
+                                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-800 text-slate-400">
+                                  DE-ESCALATED
+                                </span>
+                              )}
+                              <span className="text-[10px] font-bold text-slate-500">
+                                Severity: {rc.priorSeverity !== 'none' ? `${rc.priorSeverity} → ` : ""}{rc.currentSeverity}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs font-semibold text-slate-200 leading-snug">
+                            {rc.risk}
+                          </p>
+                          <p className="text-xs text-slate-400 leading-normal mt-1.5 italic">
+                            💡 {rc.notes}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              ) : (
+                <div className="bg-slate-950/40 p-12 rounded-2xl border border-slate-900 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+                  <AlertTriangle className="h-10 w-10 text-slate-700" />
+                  <p className="text-sm font-semibold text-slate-400">Compare Prior and Current Disclosures</p>
+                  <p className="text-xs text-slate-500 max-w-sm">
+                    Select two documents representing a prior and current period in the header above, then click <strong>Compare</strong>. 
+                    Or click <strong>Load Test Presets</strong> to test the Tesla FY2023 vs FY2024 comparison instantly.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 5: COMPETITOR BENCHMARKING */}
+          {activeTab === "benchmarking" && (
+            <div className="flex flex-col gap-6">
+              
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-100">Competitor Benchmarking</h2>
+                  <p className="text-slate-400 text-sm">Compare financial statements side-by-side to benchmark margins and ratios.</p>
+                </div>
+
+                {/* Company Selectors */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-xs text-slate-400 font-semibold mr-1">Benchmarked Entities:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {documents.map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={() => {
+                          if (benchmarkedDocIds.includes(d.id)) {
+                            setBenchmarkedDocIds(benchmarkedDocIds.filter(id => id !== d.id));
+                          } else {
+                            setBenchmarkedDocIds([...benchmarkedDocIds, d.id]);
+                          }
+                        }}
+                        className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all ${
+                          benchmarkedDocIds.includes(d.id)
+                            ? "bg-blue-600 border-blue-500 text-white"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        {d.companyName} ({d.period})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {benchmarkedDocIds.length > 0 ? (
+                <div className="flex flex-col gap-6">
+                  
+                  {/* Side-by-side Table */}
+                  <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
+                    <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2 flex items-center gap-2">
+                      <Users className="h-4 w-4 text-emerald-400" /> Comparison Matrix
+                    </h3>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-900 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                            <th className="pb-3 pl-2">Financial metric</th>
+                            {benchmarkedDocIds.map((id) => {
+                              const doc = documents.find(d => d.id === id);
+                              return (
+                                <th key={id} className="pb-3 text-right pr-2">
+                                  <div className="font-bold text-slate-200">{doc?.companyName}</div>
+                                  <div className="text-[10px] text-slate-500 lowercase">{doc?.period}</div>
+                                </th>
+                              );
+                            })}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-900/60 font-medium">
+                          {[
+                            { name: "Revenue ($ Millions)", key: "revenue", format: "currency" },
+                            { name: "EBITDA ($ Millions)", key: "ebitda", format: "currency" },
+                            { name: "Net Income ($ Millions)", key: "netIncome", format: "currency" },
+                            { name: "Gross Margin %", key: "grossMargin", format: "percent" },
+                            { name: "Operating Margin %", key: "operatingMargin", format: "percent" },
+                            { name: "EBITDA Margin %", key: "ebitdaMargin", format: "percent" },
+                            { name: "Net Margin %", key: "netMargin", format: "percent" },
+                            { name: "Cash & Equivalents ($M)", key: "cashAndEquivalents", format: "currency" },
+                            { name: "Total Debt ($M)", key: "totalDebt", format: "currency" },
+                            { name: "Capital Expenditure ($M)", key: "capex", format: "currency" },
+                            { name: "Earnings Per Share (EPS)", key: "eps", format: "eps" },
+                          ].map((item) => (
+                            <tr key={item.name} className="hover:bg-slate-900/20">
+                              <td className="py-3 pl-2 text-slate-300 font-semibold">{item.name}</td>
+                              {benchmarkedDocIds.map((id) => {
+                                const doc = documents.find(d => d.id === id);
+                                if (!doc) return <td key={id} className="py-3 text-right text-slate-500 pr-2">—</td>;
+                                const val = doc.financials[item.key as keyof Financials];
+                                
+                                return (
+                                  <td key={id} className="py-3 text-right pr-2 font-bold text-slate-100">
+                                    {val === null || val === undefined
+                                      ? "N/A"
+                                      : item.format === "currency"
+                                      ? `$${val.toLocaleString()}`
+                                      : item.format === "percent"
+                                      ? `${val}%`
+                                      : `$${val}`}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Visual Charts Comparison */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Margins Benchmarking Chart */}
+                    <div className="flex flex-col gap-2">
+                      <div className="text-xs font-bold uppercase tracking-wider text-slate-400 pl-1">
+                        Margin Profile Benchmarking
+                      </div>
+                      {(() => {
+                        const chartData = benchmarkedDocIds.map(id => {
+                          const doc = documents.find(d => d.id === id);
+                          return {
+                            name: `${doc?.companyName.split(" ")[0]} (${doc?.period})`,
+                            Gross: doc?.financials.grossMargin || 0,
+                            Operating: doc?.financials.operatingMargin || 0,
+                            Net: doc?.financials.netMargin || 0
+                          };
+                        });
+                        return <MarginLineChart data={chartData} />;
+                      })()}
+                    </div>
+
+                    {/* Capital allocation Benchmarking Chart */}
+                    <div className="flex flex-col gap-2">
+                      <div className="text-xs font-bold uppercase tracking-wider text-slate-400 pl-1">
+                        Liquidity & Capital Allocation Benchmarking
+                      </div>
+                      {(() => {
+                        const chartData = benchmarkedDocIds.map(id => {
+                          const doc = documents.find(d => d.id === id);
+                          return {
+                            name: `${doc?.companyName.split(" ")[0]} (${doc?.period})`,
+                            Cash: doc?.financials.cashAndEquivalents || 0,
+                            Debt: doc?.financials.totalDebt || 0,
+                            Capex: doc?.financials.capex || 0
+                          };
+                        });
+                        return <CapexCashChart data={chartData} />;
+                      })()}
+                    </div>
+                  </div>
+
+                </div>
+              ) : (
+                <div className="bg-slate-950/40 p-12 rounded-2xl border border-slate-900 text-center text-slate-500">
+                  Select at least one company in the header to run benchmarking.
+                </div>
+              )}
+            </div>
+          )}
+
 
         </section>
       </main>
