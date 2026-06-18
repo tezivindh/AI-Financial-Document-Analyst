@@ -1783,8 +1783,38 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
                 </div>
               ) : (
-                <div className="bg-slate-950/40 p-12 rounded-2xl border border-slate-900 text-center text-slate-500">
-                  Select at least one company in the header to run benchmarking.
+                <div className="flex min-h-[320px] items-center justify-center px-1 py-4 sm:min-h-[380px]">
+                  <div className="w-full max-w-2xl rounded-2xl border border-slate-900 bg-slate-950/40 p-8 text-center sm:p-10">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/50">
+                      <Users className="h-6 w-6 text-emerald-400" />
+                    </div>
+
+                    {documents.length === 0 ? (
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="space-y-2">
+                          <p className="text-lg font-semibold text-slate-200">No benchmark data available</p>
+                          <p className="mx-auto max-w-md text-sm leading-relaxed text-slate-400">
+                            Upload financial documents or click Load Test Presets to compare companies.
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={handleLoadPresets}
+                          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/10 transition-all hover:brightness-110"
+                        >
+                          <Database className="h-4 w-4" />
+                          <span>Load Test Presets</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-lg font-semibold text-slate-200">Select at least one company to run benchmarking.</p>
+                        <p className="mx-auto max-w-md text-sm leading-relaxed text-slate-400">
+                          Choose one or more companies from the header above to populate the comparison matrix and charts.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
