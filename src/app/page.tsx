@@ -28,16 +28,21 @@ import {
 
 // Dynamically import Recharts to avoid SSR hydration issues
 const RevenueEbitdaChart = dynamic(
-  () => import("../components/FinancialCharts").then((mod) => mod.RevenueEbitdaChart),
-  { ssr: false }
+  () =>
+    import("../components/FinancialCharts").then(
+      (mod) => mod.RevenueEbitdaChart,
+    ),
+  { ssr: false },
 );
 const MarginLineChart = dynamic(
-  () => import("../components/FinancialCharts").then((mod) => mod.MarginLineChart),
-  { ssr: false }
+  () =>
+    import("../components/FinancialCharts").then((mod) => mod.MarginLineChart),
+  { ssr: false },
 );
 const CapexCashChart = dynamic(
-  () => import("../components/FinancialCharts").then((mod) => mod.CapexCashChart),
-  { ssr: false }
+  () =>
+    import("../components/FinancialCharts").then((mod) => mod.CapexCashChart),
+  { ssr: false },
 );
 
 type ComparisonLabel = "YoY" | "QoQ" | "PoP";
@@ -110,7 +115,10 @@ function parsePeriodLabel(period: string): ParsedPeriod {
   };
 }
 
-function compareDocumentPeriods(a: AnalyzedDocument, b: AnalyzedDocument): number {
+function compareDocumentPeriods(
+  a: AnalyzedDocument,
+  b: AnalyzedDocument,
+): number {
   const parsedA = parsePeriodLabel(a.period);
   const parsedB = parsePeriodLabel(b.period);
 
@@ -121,8 +129,17 @@ function compareDocumentPeriods(a: AnalyzedDocument, b: AnalyzedDocument): numbe
   return a.period.localeCompare(b.period);
 }
 
-function calculatePercentChange(current: number | null, prior: number | null): number | null {
-  if (current === null || prior === null || current === undefined || prior === undefined || prior === 0) {
+function calculatePercentChange(
+  current: number | null,
+  prior: number | null,
+): number | null {
+  if (
+    current === null ||
+    prior === null ||
+    current === undefined ||
+    prior === undefined ||
+    prior === 0
+  ) {
     return null;
   }
 
@@ -131,14 +148,21 @@ function calculatePercentChange(current: number | null, prior: number | null): n
 
 function findBestPriorPeriodDoc(
   documents: AnalyzedDocument[],
-  currentDoc: AnalyzedDocument
+  currentDoc: AnalyzedDocument,
 ): PriorPeriodMatch | null {
   const parsedCurrent = parsePeriodLabel(currentDoc.period);
   const sameCompanyDocs = documents
-    .filter((doc) => doc.companyName === currentDoc.companyName && doc.id !== currentDoc.id)
+    .filter(
+      (doc) =>
+        doc.companyName === currentDoc.companyName && doc.id !== currentDoc.id,
+    )
     .sort(compareDocumentPeriods);
 
-  const findExactMatch = (granularity: PeriodGranularity, fiscalYear: number, quarter?: number | null) =>
+  const findExactMatch = (
+    granularity: PeriodGranularity,
+    fiscalYear: number,
+    quarter?: number | null,
+  ) =>
     sameCompanyDocs.find((doc) => {
       const parsed = parsePeriodLabel(doc.period);
       return (
@@ -148,17 +172,29 @@ function findBestPriorPeriodDoc(
       );
     });
 
-  if (parsedCurrent.granularity === "quarterly" && parsedCurrent.fiscalYear && parsedCurrent.quarter) {
+  if (
+    parsedCurrent.granularity === "quarterly" &&
+    parsedCurrent.fiscalYear &&
+    parsedCurrent.quarter
+  ) {
     const previousQuarter =
       parsedCurrent.quarter === 1
         ? findExactMatch("quarterly", parsedCurrent.fiscalYear - 1, 4)
-        : findExactMatch("quarterly", parsedCurrent.fiscalYear, parsedCurrent.quarter - 1);
+        : findExactMatch(
+            "quarterly",
+            parsedCurrent.fiscalYear,
+            parsedCurrent.quarter - 1,
+          );
 
     if (previousQuarter) {
       return { doc: previousQuarter, label: "QoQ" };
     }
 
-    const priorYearQuarter = findExactMatch("quarterly", parsedCurrent.fiscalYear - 1, parsedCurrent.quarter);
+    const priorYearQuarter = findExactMatch(
+      "quarterly",
+      parsedCurrent.fiscalYear - 1,
+      parsedCurrent.quarter,
+    );
     if (priorYearQuarter) {
       return { doc: priorYearQuarter, label: "YoY" };
     }
@@ -183,11 +219,14 @@ function findBestPriorPeriodDoc(
   return fallback ? { doc: fallback, label: "PoP" } : null;
 }
 
-function calculateDerivedMetrics(documents: AnalyzedDocument[], doc: AnalyzedDocument): DerivedMetrics {
+function calculateDerivedMetrics(
+  documents: AnalyzedDocument[],
+  doc: AnalyzedDocument,
+): DerivedMetrics {
   const priorMatch = findBestPriorPeriodDoc(documents, doc);
   const revenueGrowth = calculatePercentChange(
     doc.financials.revenue,
-    priorMatch?.doc.financials.revenue ?? null
+    priorMatch?.doc.financials.revenue ?? null,
   );
   const ebitdaMargin =
     doc.financials.ebitdaMargin ??
@@ -199,7 +238,8 @@ function calculateDerivedMetrics(documents: AnalyzedDocument[], doc: AnalyzedDoc
       ? doc.financials.operatingCashFlow - doc.financials.capex
       : null;
   const netDebt =
-    doc.financials.totalDebt !== null && doc.financials.cashAndEquivalents !== null
+    doc.financials.totalDebt !== null &&
+    doc.financials.cashAndEquivalents !== null
       ? doc.financials.totalDebt - doc.financials.cashAndEquivalents
       : null;
   const capexAsPctRevenue =
@@ -226,7 +266,7 @@ export default function Page() {
   // Core State
   const [documents, setDocuments] = useState<AnalyzedDocument[]>([]);
   const [apiKey, setApiKey] = useState<string>("");
-  
+
   // Selection States
   const [selectedDocId, setSelectedDocId] = useState<string>("");
   const [compareDocId1, setCompareDocId1] = useState<string>(""); // Prior Period
@@ -262,9 +302,12 @@ export default function Page() {
       try {
         const parsed = JSON.parse(savedDocs);
         setDocuments(parsed);
-        
+
         const savedSelectedDocId = localStorage.getItem("selected_doc_id");
-        if (savedSelectedDocId && parsed.some((d: any) => d.id === savedSelectedDocId)) {
+        if (
+          savedSelectedDocId &&
+          parsed.some((d: any) => d.id === savedSelectedDocId)
+        ) {
           setSelectedDocId(savedSelectedDocId);
         } else if (parsed.length > 0) {
           setSelectedDocId(parsed[0].id);
@@ -278,7 +321,9 @@ export default function Page() {
       setApiKey(savedKey);
     }
 
-    const savedCompareResult = localStorage.getItem("financial_comparison_result");
+    const savedCompareResult = localStorage.getItem(
+      "financial_comparison_result",
+    );
     if (savedCompareResult) {
       try {
         setComparisonResult(JSON.parse(savedCompareResult));
@@ -311,7 +356,10 @@ export default function Page() {
 
   useEffect(() => {
     if (comparisonResult) {
-      localStorage.setItem("financial_comparison_result", JSON.stringify(comparisonResult));
+      localStorage.setItem(
+        "financial_comparison_result",
+        JSON.stringify(comparisonResult),
+      );
     } else {
       localStorage.removeItem("financial_comparison_result");
     }
@@ -363,7 +411,7 @@ export default function Page() {
   // Load Preset Test Cases
   const handleLoadPresets = () => {
     const combinedDocs = [...documents];
-    
+
     // Add presets if they aren't already loaded
     PRESET_DOCUMENTS.forEach((preset) => {
       const exists = combinedDocs.some((d) => d.id === preset.id);
@@ -374,21 +422,27 @@ export default function Page() {
 
     saveDocs(combinedDocs);
     setSelectedDocId(PRESET_DOCUMENTS[1].id); // select Tesla 2024 by default
-    
+
     // Set up comparison selects
     setCompareDocId1("preset-tesla-2023");
     setCompareDocId2("preset-tesla-2024");
-    
+
     // Set up benchmarking select
-    setBenchmarkedDocIds(["preset-tesla-2024", "preset-apple-2024", "preset-nvidia-2024"]);
-    
+    setBenchmarkedDocIds([
+      "preset-tesla-2024",
+      "preset-apple-2024",
+      "preset-nvidia-2024",
+    ]);
+
     // Set up memo select
     setMemoDocId("preset-tesla-2024");
 
     // Load comparison automatically for preset
     setComparisonResult(PRESET_COMPARISON);
 
-    showSuccess("Successfully loaded 4 financial presets (Tesla 2023, Tesla 2024, Apple, NVIDIA) and configured default comparisons.");
+    showSuccess(
+      "Successfully loaded 4 financial presets (Tesla 2023, Tesla 2024, Apple, NVIDIA) and configured default comparisons.",
+    );
   };
 
   // Delete document
@@ -459,10 +513,15 @@ export default function Page() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-      showSuccess(`Successfully analyzed ${newDoc.companyName} (${newDoc.period})!`);
+      showSuccess(
+        `Successfully analyzed ${newDoc.companyName} (${newDoc.period})!`,
+      );
     } catch (e: any) {
       console.error(e);
-      showError(e.message || "Failed to connect to backend server. Make sure it is running on port 5000.");
+      showError(
+        e.message ||
+          "Failed to connect to backend server. Make sure it is running on port 5000.",
+      );
     } finally {
       setUploading(false);
     }
@@ -476,7 +535,10 @@ export default function Page() {
     }
 
     // Short-circuit for presets to bypass API key requirement for testing
-    if (compareDocId1 === "preset-tesla-2023" && compareDocId2 === "preset-tesla-2024") {
+    if (
+      compareDocId1 === "preset-tesla-2023" &&
+      compareDocId2 === "preset-tesla-2024"
+    ) {
       setComparisonResult(PRESET_COMPARISON);
       showSuccess("Loaded preset YoY comparison for Tesla.");
       return;
@@ -490,7 +552,9 @@ export default function Page() {
     const doc2 = documents.find((d) => d.id === compareDocId2);
 
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
       if (apiKey) {
         headers["x-api-key"] = apiKey;
       }
@@ -534,7 +598,8 @@ export default function Page() {
       const doc23 = PRESET_DOCUMENTS[0];
       const doc24 = PRESET_DOCUMENTS[1];
       const freeCashFlow24 =
-        doc24.financials.operatingCashFlow !== null && doc24.financials.capex !== null
+        doc24.financials.operatingCashFlow !== null &&
+        doc24.financials.capex !== null
           ? doc24.financials.operatingCashFlow - doc24.financials.capex
           : null;
       const presetMemo = `# Investment Memo: Tesla, Inc. (TSLA)
@@ -609,7 +674,9 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
     const docsPayload = Array.from(docsPayloadMap.values());
 
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
       if (apiKey) {
         headers["x-api-key"] = apiKey;
       }
@@ -651,8 +718,10 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const doc = documents.find(d => d.id === memoDocId);
-    const companyClean = doc ? doc.companyName.replace(/[^a-zA-Z0-9]/g, "_") : "Investment";
+    const doc = documents.find((d) => d.id === memoDocId);
+    const companyClean = doc
+      ? doc.companyName.replace(/[^a-zA-Z0-9]/g, "_")
+      : "Investment";
     a.download = `${companyClean}_Memo_${doc ? doc.period : "FY"}.md`;
     document.body.appendChild(a);
     a.click();
@@ -662,22 +731,42 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
   // Selected document helper
   const selectedDoc = documents.find((d) => d.id === selectedDocId);
-  const selectedDocComparison = selectedDoc ? findBestPriorPeriodDoc(documents, selectedDoc) : null;
+  const selectedDocComparison = selectedDoc
+    ? findBestPriorPeriodDoc(documents, selectedDoc)
+    : null;
   const benchmarkedDocs = benchmarkedDocIds
     .map((id) => documents.find((doc) => doc.id === id))
     .filter((doc): doc is AnalyzedDocument => Boolean(doc));
 
   // Helper for rendering tone badge
-  const getToneBadge = (tone: 'confident' | 'cautious' | 'hedged' | 'neutral') => {
+  const getToneBadge = (
+    tone: "confident" | "cautious" | "hedged" | "neutral",
+  ) => {
     switch (tone) {
-      case 'confident':
-        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Confident</span>;
-      case 'cautious':
-        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">Cautious</span>;
-      case 'hedged':
-        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">Hedged</span>;
+      case "confident":
+        return (
+          <span className="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            Confident
+          </span>
+        );
+      case "cautious":
+        return (
+          <span className="px-2 py-0.5 text-xs font-semibold rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            Cautious
+          </span>
+        );
+      case "hedged":
+        return (
+          <span className="px-2 py-0.5 text-xs font-semibold rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">
+            Hedged
+          </span>
+        );
       default:
-        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-slate-500/20 text-slate-400 border border-slate-500/30">Neutral</span>;
+        return (
+          <span className="px-2 py-0.5 text-xs font-semibold rounded bg-slate-500/20 text-slate-400 border border-slate-500/30">
+            Neutral
+          </span>
+        );
     }
   };
 
@@ -687,7 +776,10 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
     return `$${val.toLocaleString()}M`;
   };
 
-  const formatMetricValue = (val: number | null | undefined, format: "currency" | "percent" | "eps") => {
+  const formatMetricValue = (
+    val: number | null | undefined,
+    format: "currency" | "percent" | "eps",
+  ) => {
     if (val === null || val === undefined) return "N/A";
     if (format === "percent") return `${val.toFixed(1)}%`;
     if (format === "eps") return `$${val.toFixed(2)}`;
@@ -710,7 +802,9 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
               AI Financial Analyst
             </h1>
-            <p className="text-xs text-slate-500">Document Ingestion & Deep Analysis Platform</p>
+            <p className="text-xs text-slate-500">
+              Document Ingestion & Deep Analysis Platform
+            </p>
           </div>
         </div>
 
@@ -728,10 +822,11 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
       {/* Main Container */}
       <main className="flex-1 flex flex-col md:flex-row relative z-10">
-        
         {/* Sidebar Nav */}
         <nav className="w-full md:w-64 border-r border-slate-900 bg-zinc-950/40 p-4 flex flex-col gap-1.5">
-          <div className="text-[10px] font-bold text-slate-500 tracking-wider px-3 uppercase mb-2">Main Menu</div>
+          <div className="text-[10px] font-bold text-slate-500 tracking-wider px-3 uppercase mb-2">
+            Main Menu
+          </div>
           <button
             onClick={() => setActiveTab("dashboard")}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all font-medium ${
@@ -743,12 +838,13 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
             <Upload className="h-4 w-4" />
             <span>Dashboard & Ingest</span>
           </button>
-          
+
           <button
             onClick={() => {
               setActiveTab("metrics");
               // Pick default doc if none selected
-              if (!selectedDocId && documents.length > 0) setSelectedDocId(documents[0].id);
+              if (!selectedDocId && documents.length > 0)
+                setSelectedDocId(documents[0].id);
             }}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all font-medium ${
               activeTab === "metrics"
@@ -759,11 +855,12 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
             <BarChart3 className="h-4 w-4" />
             <span>Financial Metrics</span>
           </button>
-          
+
           <button
             onClick={() => {
               setActiveTab("tone");
-              if (!selectedDocId && documents.length > 0) setSelectedDocId(documents[0].id);
+              if (!selectedDocId && documents.length > 0)
+                setSelectedDocId(documents[0].id);
             }}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all font-medium ${
               activeTab === "tone"
@@ -774,14 +871,18 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
             <TrendingUp className="h-4 w-4" />
             <span>Management Tone</span>
           </button>
-          
+
           <button
             onClick={() => {
               setActiveTab("risks");
               // Set up defaults for compare
               if (documents.length >= 2) {
-                const tsla23 = documents.find(d => d.id === "preset-tesla-2023");
-                const tsla24 = documents.find(d => d.id === "preset-tesla-2024");
+                const tsla23 = documents.find(
+                  (d) => d.id === "preset-tesla-2023",
+                );
+                const tsla24 = documents.find(
+                  (d) => d.id === "preset-tesla-2024",
+                );
                 if (tsla23 && tsla24) {
                   setCompareDocId1(tsla23.id);
                   setCompareDocId2(tsla24.id);
@@ -800,28 +901,31 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
             <AlertTriangle className="h-4 w-4" />
             <span>Risk Factor Comparison</span>
           </button>
-          
+
           <button
             onClick={() => {
               setActiveTab("benchmarking");
               if (benchmarkedDocIds.length === 0 && documents.length > 0) {
-                setBenchmarkedDocIds(documents.map(d => d.id).slice(0, 3));
+                setBenchmarkedDocIds(documents.map((d) => d.id).slice(0, 3));
               }
             }}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all font-medium ${
+            className={`flex items-center gap-2 px-2.5 py-2.5 rounded-xl text-sm transition-all font-medium ${
               activeTab === "benchmarking"
                 ? "bg-slate-800/80 text-white shadow-sm border-l-4 border-emerald-500"
                 : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
             }`}
           >
-            <Users className="h-4 w-4" />
-            <span>Competitor Benchmarking</span>
+            <Users className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap text-[13px] leading-none">
+              Competitor Benchmarking
+            </span>
           </button>
-          
+
           <button
             onClick={() => {
               setActiveTab("memo");
-              if (!memoDocId && documents.length > 0) setMemoDocId(documents[0].id);
+              if (!memoDocId && documents.length > 0)
+                setMemoDocId(documents[0].id);
             }}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all font-medium ${
               activeTab === "memo"
@@ -851,7 +955,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
             )}
             {!successMsg && !errorMsg && (
               <p className="text-slate-500 font-mono">
-                System idle. {documents.length} document{documents.length !== 1 && 's'} loaded.
+                System idle. {documents.length} document
+                {documents.length !== 1 && "s"} loaded.
               </p>
             )}
           </div>
@@ -859,15 +964,18 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
         {/* Content Pane */}
         <section className="flex-1 p-6 overflow-y-auto">
-          
           {/* TAB 1: DASHBOARD & UPLOAD */}
           {activeTab === "dashboard" && (
             <div className="flex flex-col gap-6">
-              
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-100">Financial Document Library</h2>
-                  <p className="text-slate-400 text-sm">Upload filings (PDFs) or call transcripts (Text) to structure metrics instantly.</p>
+                  <h2 className="text-2xl font-bold text-slate-100">
+                    Financial Document Library
+                  </h2>
+                  <p className="text-slate-400 text-sm">
+                    Upload filings (PDFs) or call transcripts (Text) to
+                    structure metrics instantly.
+                  </p>
                 </div>
                 {documents.length === 0 && (
                   <button
@@ -881,16 +989,21 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
               {/* Upload Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
                 {/* Upload Form */}
                 <div className="lg:col-span-1 bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
                   <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2 flex items-center gap-2">
-                    <Upload className="h-4 w-4 text-emerald-400" /> Ingest New Document
+                    <Upload className="h-4 w-4 text-emerald-400" /> Ingest New
+                    Document
                   </h3>
-                  
-                  <form onSubmit={handleUploadSubmit} className="flex flex-col gap-4">
+
+                  <form
+                    onSubmit={handleUploadSubmit}
+                    className="flex flex-col gap-4"
+                  >
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1">Upload File (PDF, TXT)</label>
+                      <label className="block text-xs font-semibold text-slate-400 mb-1">
+                        Upload File (PDF, TXT)
+                      </label>
                       <div className="border-2 border-dashed border-slate-800 rounded-xl p-4 text-center cursor-pointer hover:border-slate-700 transition-all bg-slate-900/10 hover:bg-slate-900/20 relative">
                         <input
                           type="file"
@@ -903,13 +1016,17 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                         <span className="text-xs text-slate-300 block font-medium">
                           {file ? file.name : "Select a PDF or TXT transcript"}
                         </span>
-                        <span className="text-[10px] text-slate-500 block mt-1">Maximum size: 50MB</span>
+                        <span className="text-[10px] text-slate-500 block mt-1">
+                          Maximum size: 50MB
+                        </span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Document Type</label>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">
+                          Document Type
+                        </label>
                         <select
                           value={documentType}
                           onChange={(e) => setDocumentType(e.target.value)}
@@ -917,13 +1034,17 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                         >
                           <option value="10-K">10-K (Annual)</option>
                           <option value="10-Q">10-Q (Quarterly)</option>
-                          <option value="transcript">Earnings Transcript</option>
+                          <option value="transcript">
+                            Earnings Transcript
+                          </option>
                           <option value="other">Other Report</option>
                         </select>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Reporting Period</label>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">
+                          Reporting Period
+                        </label>
                         <select
                           value={period}
                           onChange={(e) => setPeriod(e.target.value)}
@@ -942,7 +1063,9 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
                     {period === "custom" && (
                       <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Enter Custom Period</label>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">
+                          Enter Custom Period
+                        </label>
                         <input
                           type="text"
                           value={customPeriod}
@@ -957,7 +1080,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                     <div className="flex gap-2 p-3 bg-blue-950/20 border border-blue-900/30 rounded-xl text-[11px] text-blue-300">
                       <Info className="h-4 w-4 shrink-0" />
                       <p>
-                        Analyzing via server-side Gemini configuration. You can also load presets to test immediately.
+                        Analyzing via server-side Gemini configuration. You can
+                        also load presets to test immediately.
                       </p>
                     </div>
 
@@ -985,7 +1109,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                 <div className="lg:col-span-2 bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
                   <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2 flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-blue-400" /> Ingested Statements & Transcripts
+                      <FileText className="h-4 w-4 text-blue-400" /> Ingested
+                      Statements & Transcripts
                     </span>
                     <span className="text-xs bg-slate-900 text-slate-400 px-2 py-0.5 rounded-full border border-slate-800 font-mono">
                       {documents.length} Files
@@ -995,9 +1120,13 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                   {documents.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center py-12 text-slate-500">
                       <FileDown className="h-12 w-12 text-slate-700 mb-2" />
-                      <p className="text-sm font-semibold text-slate-400">Library is Empty</p>
+                      <p className="text-sm font-semibold text-slate-400">
+                        Library is Empty
+                      </p>
                       <p className="text-xs text-slate-500 text-center max-w-sm mt-1">
-                        Use the form on the left to upload a financial statement, or click the button below to load 4 pre-analyzed test files.
+                        Use the form on the left to upload a financial
+                        statement, or click the button below to load 4
+                        pre-analyzed test files.
                       </p>
                       <button
                         onClick={handleLoadPresets}
@@ -1020,24 +1149,38 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                         </thead>
                         <tbody className="divide-y divide-slate-900/60">
                           {documents.map((doc) => (
-                            <tr key={doc.id} className="hover:bg-slate-900/30 group transition-all">
+                            <tr
+                              key={doc.id}
+                              className="hover:bg-slate-900/30 group transition-all"
+                            >
                               <td className="py-3 pl-2">
-                                <div className="font-bold text-slate-200">{doc.companyName}</div>
-                                <div className="text-[10px] text-slate-500 font-mono">{doc.ticker || "N/A"}</div>
+                                <div className="font-bold text-slate-200">
+                                  {doc.companyName}
+                                </div>
+                                <div className="text-[10px] text-slate-500 font-mono">
+                                  {doc.ticker || "N/A"}
+                                </div>
                               </td>
-                              <td className="py-3 text-slate-300 font-semibold">{doc.period}</td>
+                              <td className="py-3 text-slate-300 font-semibold">
+                                {doc.period}
+                              </td>
                               <td className="py-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                                  doc.documentType === '10-K'
-                                    ? 'bg-blue-950/20 text-blue-400 border-blue-500/20'
-                                    : doc.documentType === '10-Q'
-                                    ? 'bg-amber-950/20 text-amber-400 border-amber-500/20'
-                                    : 'bg-emerald-950/20 text-emerald-400 border-emerald-500/20'
-                                }`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                                    doc.documentType === "10-K"
+                                      ? "bg-blue-950/20 text-blue-400 border-blue-500/20"
+                                      : doc.documentType === "10-Q"
+                                        ? "bg-amber-950/20 text-amber-400 border-amber-500/20"
+                                        : "bg-emerald-950/20 text-emerald-400 border-emerald-500/20"
+                                  }`}
+                                >
                                   {doc.documentType}
                                 </span>
                               </td>
-                              <td className="py-3 text-slate-400 font-mono text-[10px] max-w-[120px] truncate" title={doc.fileName}>
+                              <td
+                                className="py-3 text-slate-400 font-mono text-[10px] max-w-[120px] truncate"
+                                title={doc.fileName}
+                              >
                                 {doc.fileName}
                               </td>
                               <td className="py-3 text-right pr-2">
@@ -1074,16 +1217,22 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
           {/* TAB 2: FINANCIAL METRICS */}
           {activeTab === "metrics" && (
             <div className="flex flex-col gap-6">
-              
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-100">Financial Metric Extraction</h2>
-                  <p className="text-slate-400 text-sm">Review parsed financial figures and compare Year-over-Year or Quarter-over-Quarter changes.</p>
+                  <h2 className="text-2xl font-bold text-slate-100">
+                    Financial Metric Extraction
+                  </h2>
+                  <p className="text-slate-400 text-sm">
+                    Review parsed financial figures and compare Year-over-Year
+                    or Quarter-over-Quarter changes.
+                  </p>
                 </div>
-                
+
                 {/* Select main doc */}
                 <div className="flex items-center gap-2">
-                  <label className="text-xs font-semibold text-slate-400">Target Statement:</label>
+                  <label className="text-xs font-semibold text-slate-400">
+                    Target Statement:
+                  </label>
                   <select
                     value={selectedDocId}
                     onChange={(e) => setSelectedDocId(e.target.value)}
@@ -1100,7 +1249,6 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
               {selectedDoc ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  
                   {/* Detailed Table */}
                   <div className="lg:col-span-2 bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
                     <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2 flex items-center justify-between">
@@ -1113,7 +1261,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                     {/* Period-over-period computation helper */}
                     {(() => {
                       const priorPeriodDoc = selectedDocComparison?.doc;
-                      const comparisonLabel = selectedDocComparison?.label ?? "PoP";
+                      const comparisonLabel =
+                        selectedDocComparison?.label ?? "PoP";
 
                       const getComparisonStr = (field: keyof Financials) => {
                         if (!priorPeriodDoc) return null;
@@ -1123,7 +1272,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                         if (pct === null) return null;
 
                         const sign = pct >= 0 ? "+" : "";
-                        const color = pct >= 0 ? "text-emerald-400" : "text-red-400";
+                        const color =
+                          pct >= 0 ? "text-emerald-400" : "text-red-400";
                         return {
                           str: `${sign}${pct.toFixed(1)}% ${comparisonLabel}`,
                           color,
@@ -1136,53 +1286,134 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                             <thead>
                               <tr className="border-b border-slate-900 text-slate-400 font-bold">
                                 <th className="pb-3 pl-1">Financial Metric</th>
-                                <th className="pb-3 text-right">Extracted Value ({selectedDoc.period})</th>
+                                <th className="pb-3 text-right">
+                                  Extracted Value ({selectedDoc.period})
+                                </th>
                                 {priorPeriodDoc && (
                                   <>
-                                    <th className="pb-3 text-right">Prior Period ({priorPeriodDoc.period})</th>
-                                    <th className="pb-3 text-right pr-1">Change %</th>
+                                    <th className="pb-3 text-right">
+                                      Prior Period ({priorPeriodDoc.period})
+                                    </th>
+                                    <th className="pb-3 text-right pr-1">
+                                      Change %
+                                    </th>
                                   </>
                                 )}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-900/60 font-medium">
                               {[
-                                { name: "Revenue", key: "revenue", isMargin: false },
-                                { name: "EBITDA", key: "ebitda", isMargin: false },
-                                { name: "Net Income", key: "netIncome", isMargin: false },
-                                { name: "Operating Cash Flow", key: "operatingCashFlow", isMargin: false },
-                                { name: "Capex (Capital Expenditure)", key: "capex", isMargin: false },
-                                { name: "Total Debt", key: "totalDebt", isMargin: false },
-                                { name: "Cash & Equivalents", key: "cashAndEquivalents", isMargin: false },
-                                { name: "Gross Margin %", key: "grossMargin", isMargin: true },
-                                { name: "Operating Margin %", key: "operatingMargin", isMargin: true },
-                                { name: "EBITDA Margin %", key: "ebitdaMargin", isMargin: true },
-                                { name: "Net Margin %", key: "netMargin", isMargin: true },
-                                { name: "Earnings Per Share (EPS)", key: "eps", isMargin: false, isEPS: true },
+                                {
+                                  name: "Revenue",
+                                  key: "revenue",
+                                  isMargin: false,
+                                },
+                                {
+                                  name: "EBITDA",
+                                  key: "ebitda",
+                                  isMargin: false,
+                                },
+                                {
+                                  name: "Net Income",
+                                  key: "netIncome",
+                                  isMargin: false,
+                                },
+                                {
+                                  name: "Operating Cash Flow",
+                                  key: "operatingCashFlow",
+                                  isMargin: false,
+                                },
+                                {
+                                  name: "Capex (Capital Expenditure)",
+                                  key: "capex",
+                                  isMargin: false,
+                                },
+                                {
+                                  name: "Total Debt",
+                                  key: "totalDebt",
+                                  isMargin: false,
+                                },
+                                {
+                                  name: "Cash & Equivalents",
+                                  key: "cashAndEquivalents",
+                                  isMargin: false,
+                                },
+                                {
+                                  name: "Gross Margin %",
+                                  key: "grossMargin",
+                                  isMargin: true,
+                                },
+                                {
+                                  name: "Operating Margin %",
+                                  key: "operatingMargin",
+                                  isMargin: true,
+                                },
+                                {
+                                  name: "EBITDA Margin %",
+                                  key: "ebitdaMargin",
+                                  isMargin: true,
+                                },
+                                {
+                                  name: "Net Margin %",
+                                  key: "netMargin",
+                                  isMargin: true,
+                                },
+                                {
+                                  name: "Earnings Per Share (EPS)",
+                                  key: "eps",
+                                  isMargin: false,
+                                  isEPS: true,
+                                },
                               ].map((item) => {
-                                const comparison = getComparisonStr(item.key as keyof Financials);
-                                const val = selectedDoc.financials[item.key as keyof Financials];
-                                
+                                const comparison = getComparisonStr(
+                                  item.key as keyof Financials,
+                                );
+                                const val =
+                                  selectedDoc.financials[
+                                    item.key as keyof Financials
+                                  ];
+
                                 return (
-                                  <tr key={item.name} className="hover:bg-slate-900/20">
-                                    <td className="py-2.5 pl-1 text-slate-300 font-semibold">{item.name}</td>
+                                  <tr
+                                    key={item.name}
+                                    className="hover:bg-slate-900/20"
+                                  >
+                                    <td className="py-2.5 pl-1 text-slate-300 font-semibold">
+                                      {item.name}
+                                    </td>
                                     <td className="py-2.5 text-right font-bold text-slate-100">
                                       {item.isMargin
                                         ? formatMetricValue(val, "percent")
                                         : item.isEPS
-                                        ? formatMetricValue(val, "eps")
-                                        : formatM(val)}
+                                          ? formatMetricValue(val, "eps")
+                                          : formatM(val)}
                                     </td>
                                     {priorPeriodDoc && (
                                       <>
                                         <td className="py-2.5 text-right text-slate-400">
                                           {item.isMargin
-                                            ? formatMetricValue(priorPeriodDoc.financials[item.key as keyof Financials], "percent")
+                                            ? formatMetricValue(
+                                                priorPeriodDoc.financials[
+                                                  item.key as keyof Financials
+                                                ],
+                                                "percent",
+                                              )
                                             : item.isEPS
-                                            ? formatMetricValue(priorPeriodDoc.financials[item.key as keyof Financials], "eps")
-                                            : formatM(priorPeriodDoc.financials[item.key as keyof Financials])}
+                                              ? formatMetricValue(
+                                                  priorPeriodDoc.financials[
+                                                    item.key as keyof Financials
+                                                  ],
+                                                  "eps",
+                                                )
+                                              : formatM(
+                                                  priorPeriodDoc.financials[
+                                                    item.key as keyof Financials
+                                                  ],
+                                                )}
                                         </td>
-                                        <td className={`py-2.5 text-right font-bold pr-1 ${comparison ? comparison.color : 'text-slate-500'}`}>
+                                        <td
+                                          className={`py-2.5 text-right font-bold pr-1 ${comparison ? comparison.color : "text-slate-500"}`}
+                                        >
                                           {comparison ? comparison.str : "—"}
                                         </td>
                                       </>
@@ -1202,12 +1433,15 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                     {/* MD&A card */}
                     <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-3">
                       <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2 border-b border-slate-900 pb-2">
-                        <FileCheck className="h-4 w-4 text-emerald-400" /> Executive MD&A Summary
+                        <FileCheck className="h-4 w-4 text-emerald-400" />{" "}
+                        Executive MD&A Summary
                       </h3>
                       <p className="text-xs leading-relaxed text-slate-300">
                         {selectedDoc.mda?.summary}
                       </p>
-                      <h4 className="text-xs font-bold text-slate-400 mt-2">Highlights</h4>
+                      <h4 className="text-xs font-bold text-slate-400 mt-2">
+                        Highlights
+                      </h4>
                       <ul className="text-xs flex flex-col gap-1.5 list-disc pl-4 text-slate-400">
                         {selectedDoc.mda?.keyHighlights.map((hl, i) => (
                           <li key={i}>{hl}</li>
@@ -1217,7 +1451,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
                     <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-3">
                       {(() => {
-                        const guidance = selectedDoc.forwardGuidance ?? EMPTY_GUIDANCE;
+                        const guidance =
+                          selectedDoc.forwardGuidance ?? EMPTY_GUIDANCE;
                         const guidanceItems = [
                           { label: "Revenue", value: guidance.revenueGuidance },
                           { label: "Margins", value: guidance.marginGuidance },
@@ -1228,7 +1463,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                           <>
                             <div className="flex items-center justify-between border-b border-slate-900 pb-2">
                               <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2">
-                                <TrendingUp className="h-4 w-4 text-blue-400" /> Forward Guidance
+                                <TrendingUp className="h-4 w-4 text-blue-400" />{" "}
+                                Forward Guidance
                               </h3>
                               {guidance.confidenceLevel && (
                                 <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded border border-slate-800 text-slate-400">
@@ -1237,28 +1473,40 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                               )}
                             </div>
                             {guidance.managementOutlook && (
-                              <p className="text-xs leading-relaxed text-slate-300">{guidance.managementOutlook}</p>
+                              <p className="text-xs leading-relaxed text-slate-300">
+                                {guidance.managementOutlook}
+                              </p>
                             )}
                             {guidanceItems.length > 0 && (
                               <div className="flex flex-col gap-2">
                                 {guidanceItems.map((item) => (
-                                  <div key={item.label} className="text-xs text-slate-300">
-                                    <span className="font-semibold text-slate-400">{item.label}:</span> {item.value}
+                                  <div
+                                    key={item.label}
+                                    className="text-xs text-slate-300"
+                                  >
+                                    <span className="font-semibold text-slate-400">
+                                      {item.label}:
+                                    </span>{" "}
+                                    {item.value}
                                   </div>
                                 ))}
                               </div>
                             )}
                             {guidance.keyGuidanceQuotes.length > 0 && (
                               <div className="flex flex-col gap-2">
-                                <div className="text-xs font-bold text-slate-400">Key Guidance Quotes</div>
-                                {guidance.keyGuidanceQuotes.map((quote, index) => (
-                                  <blockquote
-                                    key={index}
-                                    className="text-xs italic text-slate-300 pl-3 border-l-2 border-slate-700"
-                                  >
-                                    &quot;{quote}&quot;
-                                  </blockquote>
-                                ))}
+                                <div className="text-xs font-bold text-slate-400">
+                                  Key Guidance Quotes
+                                </div>
+                                {guidance.keyGuidanceQuotes.map(
+                                  (quote, index) => (
+                                    <blockquote
+                                      key={index}
+                                      className="text-xs italic text-slate-300 pl-3 border-l-2 border-slate-700"
+                                    >
+                                      &quot;{quote}&quot;
+                                    </blockquote>
+                                  ),
+                                )}
                               </div>
                             )}
                           </>
@@ -1268,11 +1516,15 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
                     {/* Single company charts */}
                     <div className="flex flex-col gap-4">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Financial Ratios</h4>
-                      
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">
+                        Financial Ratios
+                      </h4>
+
                       {(() => {
                         const companyDocs = documents
-                          .filter((d) => d.companyName === selectedDoc.companyName)
+                          .filter(
+                            (d) => d.companyName === selectedDoc.companyName,
+                          )
                           .sort(compareDocumentPeriods);
 
                         const revenueData = companyDocs.map((d) => ({
@@ -1291,11 +1543,15 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                         return (
                           <div className="flex flex-col gap-4">
                             <div>
-                              <div className="text-xs text-slate-500 font-semibold mb-2">Revenue & EBITDA Trend</div>
+                              <div className="text-xs text-slate-500 font-semibold mb-2">
+                                Revenue & EBITDA Trend
+                              </div>
                               <RevenueEbitdaChart data={revenueData} />
                             </div>
                             <div>
-                              <div className="text-xs text-slate-500 font-semibold mb-2">Margin Trend (%)</div>
+                              <div className="text-xs text-slate-500 font-semibold mb-2">
+                                Margin Trend (%)
+                              </div>
                               <MarginLineChart data={marginData} />
                             </div>
                           </div>
@@ -1303,11 +1559,11 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                       })()}
                     </div>
                   </div>
-
                 </div>
               ) : (
                 <div className="bg-slate-950/40 p-12 rounded-2xl border border-slate-900 text-center text-slate-500">
-                  Please upload a financial document or load presets to view metrics.
+                  Please upload a financial document or load presets to view
+                  metrics.
                 </div>
               )}
             </div>
@@ -1316,16 +1572,22 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
           {/* TAB 3: TONE ANALYSIS */}
           {activeTab === "tone" && (
             <div className="flex flex-col gap-6">
-              
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-100">Management Tone & Sentiment Analysis</h2>
-                  <p className="text-slate-400 text-sm">Analyze commentary to gauge sentiment shifts, uncertainty, and hedging language.</p>
+                  <h2 className="text-2xl font-bold text-slate-100">
+                    Management Tone & Sentiment Analysis
+                  </h2>
+                  <p className="text-slate-400 text-sm">
+                    Analyze commentary to gauge sentiment shifts, uncertainty,
+                    and hedging language.
+                  </p>
                 </div>
-                
+
                 {/* Select main doc */}
                 <div className="flex items-center gap-2">
-                  <label className="text-xs font-semibold text-slate-400">Target Statement:</label>
+                  <label className="text-xs font-semibold text-slate-400">
+                    Target Statement:
+                  </label>
                   <select
                     value={selectedDocId}
                     onChange={(e) => setSelectedDocId(e.target.value)}
@@ -1342,40 +1604,56 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
               {selectedDoc ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  
                   {/* Dials / Progress Bars */}
                   <div className="lg:col-span-1 bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-6">
-                    <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2">Sentiment & Dials</h3>
-                    
+                    <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2">
+                      Sentiment & Dials
+                    </h3>
+
                     {/* Sentiment meter */}
                     <div className="flex flex-col items-center py-4 bg-slate-900/20 rounded-xl border border-slate-900">
-                      <div className="text-xs font-semibold text-slate-400 mb-1">Sentiment Score</div>
-                      <div className={`text-4xl font-extrabold ${
-                        selectedDoc.toneAnalysis.sentiment >= 0.5
-                          ? "text-emerald-400"
-                          : selectedDoc.toneAnalysis.sentiment >= 0.2
-                          ? "text-blue-400"
-                          : "text-amber-500"
-                      }`}>
-                        {selectedDoc.toneAnalysis.sentiment > 0 ? "+" : ""}{selectedDoc.toneAnalysis.sentiment.toFixed(2)}
+                      <div className="text-xs font-semibold text-slate-400 mb-1">
+                        Sentiment Score
                       </div>
-                      <div className="text-[10px] text-slate-500 mt-1">Range: -1.0 (Bearish) to +1.0 (Bullish)</div>
+                      <div
+                        className={`text-4xl font-extrabold ${
+                          selectedDoc.toneAnalysis.sentiment >= 0.5
+                            ? "text-emerald-400"
+                            : selectedDoc.toneAnalysis.sentiment >= 0.2
+                              ? "text-blue-400"
+                              : "text-amber-500"
+                        }`}
+                      >
+                        {selectedDoc.toneAnalysis.sentiment > 0 ? "+" : ""}
+                        {selectedDoc.toneAnalysis.sentiment.toFixed(2)}
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-1">
+                        Range: -1.0 (Bearish) to +1.0 (Bullish)
+                      </div>
                     </div>
 
                     {/* Confidence Meter */}
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between text-xs font-semibold text-slate-400">
                         <span>Confidence Rating</span>
-                        <span className="text-blue-400 font-bold">{(selectedDoc.toneAnalysis.confidence * 100).toFixed(0)}%</span>
+                        <span className="text-blue-400 font-bold">
+                          {(selectedDoc.toneAnalysis.confidence * 100).toFixed(
+                            0,
+                          )}
+                          %
+                        </span>
                       </div>
                       <div className="w-full bg-slate-900 rounded-full h-2">
                         <div
                           className="bg-gradient-to-r from-blue-600 to-blue-400 h-2 rounded-full"
-                          style={{ width: `${selectedDoc.toneAnalysis.confidence * 100}%` }}
+                          style={{
+                            width: `${selectedDoc.toneAnalysis.confidence * 100}%`,
+                          }}
                         />
                       </div>
                       <p className="text-[10px] text-slate-500 leading-tight">
-                        Indicates degree of directness vs. avoidance of commitment on guidance.
+                        Indicates degree of directness vs. avoidance of
+                        commitment on guidance.
                       </p>
                     </div>
 
@@ -1383,16 +1661,25 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between text-xs font-semibold text-slate-400">
                         <span>Hedging / Caution Score</span>
-                        <span className="text-amber-400 font-bold">{(selectedDoc.toneAnalysis.hedgingScore * 100).toFixed(0)}%</span>
+                        <span className="text-amber-400 font-bold">
+                          {(
+                            selectedDoc.toneAnalysis.hedgingScore * 100
+                          ).toFixed(0)}
+                          %
+                        </span>
                       </div>
                       <div className="w-full bg-slate-900 rounded-full h-2">
                         <div
                           className="bg-gradient-to-r from-amber-600 to-amber-400 h-2 rounded-full"
-                          style={{ width: `${selectedDoc.toneAnalysis.hedgingScore * 100}%` }}
+                          style={{
+                            width: `${selectedDoc.toneAnalysis.hedgingScore * 100}%`,
+                          }}
                         />
                       </div>
                       <p className="text-[10px] text-slate-500 leading-tight">
-                        Proportion of protective, conditional phrases (e.g. &quot;may&quot;, &quot;could&quot;, &quot;subject to unpredictability&quot;).
+                        Proportion of protective, conditional phrases (e.g.
+                        &quot;may&quot;, &quot;could&quot;, &quot;subject to
+                        unpredictability&quot;).
                       </p>
                     </div>
 
@@ -1400,10 +1687,15 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                     {selectedDoc.companyName.includes("Tesla") && (
                       <div className="mt-4 p-4 bg-emerald-950/20 border border-emerald-900/30 rounded-xl">
                         <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 mb-1">
-                          <Check className="h-4 w-4" /> Success Metric Validation
+                          <Check className="h-4 w-4" /> Success Metric
+                          Validation
                         </div>
                         <p className="text-[10px] text-slate-400 leading-relaxed">
-                          This satisfies the <strong>Planted Passage Test</strong>. Tesla FY2023 represents highly confident guidance, while FY2024 features planted cautious lines demonstrating FSD regulatory hedges.
+                          This satisfies the{" "}
+                          <strong>Planted Passage Test</strong>. Tesla FY2023
+                          represents highly confident guidance, while FY2024
+                          features planted cautious lines demonstrating FSD
+                          regulatory hedges.
                         </p>
                       </div>
                     )}
@@ -1414,7 +1706,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                     {/* Summary */}
                     <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-2">
                       <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-emerald-400" /> Analytical Tone Summary
+                        <FileText className="h-4 w-4 text-emerald-400" />{" "}
+                        Analytical Tone Summary
                       </h3>
                       <p className="text-xs leading-relaxed text-slate-300">
                         {selectedDoc.toneAnalysis.analysisSummary}
@@ -1423,11 +1716,16 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
                     {/* Key Quotes */}
                     <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
-                      <h3 className="font-bold text-slate-200 text-sm">Key Commentary Quotes & Classified Tone</h3>
-                      
+                      <h3 className="font-bold text-slate-200 text-sm">
+                        Key Commentary Quotes & Classified Tone
+                      </h3>
+
                       <div className="flex flex-col gap-3">
                         {selectedDoc.toneAnalysis.keyQuotes.map((q, idx) => (
-                          <div key={idx} className="p-4 bg-slate-900/40 rounded-xl border border-slate-800/80 flex flex-col gap-2 hover:border-slate-700 transition-all">
+                          <div
+                            key={idx}
+                            className="p-4 bg-slate-900/40 rounded-xl border border-slate-800/80 flex flex-col gap-2 hover:border-slate-700 transition-all"
+                          >
                             <div className="flex justify-between items-center">
                               <span className="text-[10px] font-semibold text-slate-500 uppercase font-mono">
                                 Topic: {q.context}
@@ -1442,11 +1740,11 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                       </div>
                     </div>
                   </div>
-
                 </div>
               ) : (
                 <div className="bg-slate-950/40 p-12 rounded-2xl border border-slate-900 text-center text-slate-500">
-                  Please upload a financial document or load presets to view tone analysis.
+                  Please upload a financial document or load presets to view
+                  tone analysis.
                 </div>
               )}
             </div>
@@ -1455,17 +1753,23 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
           {/* TAB 4: RISK FACTORS COMPARISON */}
           {activeTab === "risks" && (
             <div className="flex flex-col gap-6">
-              
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-100">Period-over-Period Risk Comparison</h2>
-                  <p className="text-slate-400 text-sm">Compare disclosures across periods and automatically flag brand new or escalated risks.</p>
+                  <h2 className="text-2xl font-bold text-slate-100">
+                    Period-over-Period Risk Comparison
+                  </h2>
+                  <p className="text-slate-400 text-sm">
+                    Compare disclosures across periods and automatically flag
+                    brand new or escalated risks.
+                  </p>
                 </div>
 
                 {/* Compare selectors */}
                 <div className="flex flex-wrap items-center gap-3 bg-slate-900/40 p-2 rounded-xl border border-slate-800">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-slate-400 font-medium">Prior:</span>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      Prior:
+                    </span>
                     <select
                       value={compareDocId1}
                       onChange={(e) => setCompareDocId1(e.target.value)}
@@ -1479,9 +1783,11 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                       ))}
                     </select>
                   </div>
-                  
+
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-slate-400 font-medium">Current:</span>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      Current:
+                    </span>
                     <select
                       value={compareDocId2}
                       onChange={(e) => setCompareDocId2(e.target.value)}
@@ -1508,38 +1814,63 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
               {comparisonResult ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  
                   {/* Tone shift card */}
                   <div className="lg:col-span-1 bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
                     <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2 flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-emerald-400" /> Executive Tone Shift
+                      <TrendingUp className="h-4 w-4 text-emerald-400" />{" "}
+                      Executive Tone Shift
                     </h3>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-3 bg-slate-900/20 border border-slate-900 rounded-xl text-center">
-                        <div className="text-[10px] text-slate-400 font-semibold">Sentiment Shift</div>
-                        <div className={`text-xl font-bold mt-1 ${
-                          comparisonResult.toneComparison.sentimentShift < 0 ? "text-red-400" : "text-emerald-400"
-                        }`}>
-                          {comparisonResult.toneComparison.sentimentShift > 0 ? "+" : ""}
-                          {comparisonResult.toneComparison.sentimentShift.toFixed(2)}
+                        <div className="text-[10px] text-slate-400 font-semibold">
+                          Sentiment Shift
+                        </div>
+                        <div
+                          className={`text-xl font-bold mt-1 ${
+                            comparisonResult.toneComparison.sentimentShift < 0
+                              ? "text-red-400"
+                              : "text-emerald-400"
+                          }`}
+                        >
+                          {comparisonResult.toneComparison.sentimentShift > 0
+                            ? "+"
+                            : ""}
+                          {comparisonResult.toneComparison.sentimentShift.toFixed(
+                            2,
+                          )}
                         </div>
                       </div>
 
                       <div className="p-3 bg-slate-900/20 border border-slate-900 rounded-xl text-center">
-                        <div className="text-[10px] text-slate-400 font-semibold">Confidence Shift</div>
-                        <div className={`text-xl font-bold mt-1 ${
-                          comparisonResult.toneComparison.confidenceShift < 0 ? "text-red-400" : "text-emerald-400"
-                        }`}>
-                          {comparisonResult.toneComparison.confidenceShift > 0 ? "+" : ""}
-                          {Math.round(comparisonResult.toneComparison.confidenceShift * 100)}%
+                        <div className="text-[10px] text-slate-400 font-semibold">
+                          Confidence Shift
+                        </div>
+                        <div
+                          className={`text-xl font-bold mt-1 ${
+                            comparisonResult.toneComparison.confidenceShift < 0
+                              ? "text-red-400"
+                              : "text-emerald-400"
+                          }`}
+                        >
+                          {comparisonResult.toneComparison.confidenceShift > 0
+                            ? "+"
+                            : ""}
+                          {Math.round(
+                            comparisonResult.toneComparison.confidenceShift *
+                              100,
+                          )}
+                          %
                         </div>
                       </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      <div className="text-xs font-semibold text-slate-400">Shift Classification</div>
-                      {comparisonResult.toneComparison.toneChangeFlag === "cautious_shift" ? (
+                      <div className="text-xs font-semibold text-slate-400">
+                        Shift Classification
+                      </div>
+                      {comparisonResult.toneComparison.toneChangeFlag ===
+                      "cautious_shift" ? (
                         <span className="w-fit px-3 py-1 text-xs font-bold rounded-lg bg-red-950/30 text-red-400 border border-red-500/20 animate-pulse">
                           CAUTIOUS TONE SHIFT DETECTED
                         </span>
@@ -1565,61 +1896,70 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                     </h3>
 
                     <div className="flex flex-col gap-3">
-                      {comparisonResult.riskComparison.map((rc: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className={`p-4 rounded-xl border transition-all ${
-                            rc.status === "new"
-                              ? "bg-red-950/15 border-red-500/20 hover:border-red-500/40"
-                              : rc.status === "escalated"
-                              ? "bg-amber-950/10 border-amber-500/20 hover:border-amber-500/40"
-                              : "bg-slate-900/20 border-slate-800 hover:border-slate-700"
-                          }`}
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider font-mono text-slate-400">
-                              Category: {rc.category}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              {rc.status === "new" && (
-                                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-red-600 text-white animate-pulse">
-                                  NEW RISK
-                                </span>
-                              )}
-                              {rc.status === "escalated" && (
-                                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-500 text-slate-950">
-                                  ESCALATED
-                                </span>
-                              )}
-                              {rc.status === "de-escalated" && (
-                                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-800 text-slate-400">
-                                  DE-ESCALATED
-                                </span>
-                              )}
-                              <span className="text-[10px] font-bold text-slate-500">
-                                Severity: {rc.priorSeverity !== 'none' ? `${rc.priorSeverity} → ` : ""}{rc.currentSeverity}
+                      {comparisonResult.riskComparison.map(
+                        (rc: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className={`p-4 rounded-xl border transition-all ${
+                              rc.status === "new"
+                                ? "bg-red-950/15 border-red-500/20 hover:border-red-500/40"
+                                : rc.status === "escalated"
+                                  ? "bg-amber-950/10 border-amber-500/20 hover:border-amber-500/40"
+                                  : "bg-slate-900/20 border-slate-800 hover:border-slate-700"
+                            }`}
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider font-mono text-slate-400">
+                                Category: {rc.category}
                               </span>
+                              <div className="flex items-center gap-2">
+                                {rc.status === "new" && (
+                                  <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-red-600 text-white animate-pulse">
+                                    NEW RISK
+                                  </span>
+                                )}
+                                {rc.status === "escalated" && (
+                                  <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-500 text-slate-950">
+                                    ESCALATED
+                                  </span>
+                                )}
+                                {rc.status === "de-escalated" && (
+                                  <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-800 text-slate-400">
+                                    DE-ESCALATED
+                                  </span>
+                                )}
+                                <span className="text-[10px] font-bold text-slate-500">
+                                  Severity:{" "}
+                                  {rc.priorSeverity !== "none"
+                                    ? `${rc.priorSeverity} → `
+                                    : ""}
+                                  {rc.currentSeverity}
+                                </span>
+                              </div>
                             </div>
+                            <p className="text-xs font-semibold text-slate-200 leading-snug">
+                              {rc.risk}
+                            </p>
+                            <p className="text-xs text-slate-400 leading-normal mt-1.5 italic">
+                              💡 {rc.notes}
+                            </p>
                           </div>
-                          <p className="text-xs font-semibold text-slate-200 leading-snug">
-                            {rc.risk}
-                          </p>
-                          <p className="text-xs text-slate-400 leading-normal mt-1.5 italic">
-                            💡 {rc.notes}
-                          </p>
-                        </div>
-                      ))}
+                        ),
+                      )}
                     </div>
                   </div>
-
                 </div>
               ) : (
                 <div className="bg-slate-950/40 p-12 rounded-2xl border border-slate-900 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
                   <AlertTriangle className="h-10 w-10 text-slate-700" />
-                  <p className="text-sm font-semibold text-slate-400">Compare Prior and Current Disclosures</p>
+                  <p className="text-sm font-semibold text-slate-400">
+                    Compare Prior and Current Disclosures
+                  </p>
                   <p className="text-xs text-slate-500 max-w-sm">
-                    Select two documents representing a prior and current period in the header above, then click <strong>Compare</strong>. 
-                    Or click <strong>Load Test Presets</strong> to test the Tesla FY2023 vs FY2024 comparison instantly.
+                    Select two documents representing a prior and current period
+                    in the header above, then click <strong>Compare</strong>. Or
+                    click <strong>Load Test Presets</strong> to test the Tesla
+                    FY2023 vs FY2024 comparison instantly.
                   </p>
                 </div>
               )}
@@ -1629,23 +1969,31 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
           {/* TAB 5: COMPETITOR BENCHMARKING */}
           {activeTab === "benchmarking" && (
             <div className="flex flex-col gap-6">
-              
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-100">Competitor Benchmarking</h2>
-                  <p className="text-slate-400 text-sm">Compare financial statements side-by-side to benchmark margins and ratios.</p>
+                  <h2 className="text-2xl font-bold text-slate-100">
+                    Competitor Benchmarking
+                  </h2>
+                  <p className="text-slate-400 text-sm">
+                    Compare financial statements side-by-side to benchmark
+                    margins and ratios.
+                  </p>
                 </div>
 
                 {/* Company Selectors */}
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="text-xs text-slate-400 font-semibold mr-1">Benchmarked Entities:</div>
+                  <div className="text-xs text-slate-400 font-semibold mr-1">
+                    Benchmarked Entities:
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {documents.map((d) => (
                       <button
                         key={d.id}
                         onClick={() => {
                           if (benchmarkedDocIds.includes(d.id)) {
-                            setBenchmarkedDocIds(benchmarkedDocIds.filter(id => id !== d.id));
+                            setBenchmarkedDocIds(
+                              benchmarkedDocIds.filter((id) => id !== d.id),
+                            );
                           } else {
                             setBenchmarkedDocIds([...benchmarkedDocIds, d.id]);
                           }
@@ -1665,11 +2013,11 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
 
               {benchmarkedDocs.length > 0 ? (
                 <div className="flex flex-col gap-6">
-                  
                   {/* Side-by-side Table */}
                   <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
                     <h3 className="font-bold text-slate-200 text-lg border-b border-slate-900 pb-2 flex items-center gap-2">
-                      <Users className="h-4 w-4 text-emerald-400" /> Comparison Matrix
+                      <Users className="h-4 w-4 text-emerald-400" /> Comparison
+                      Matrix
                     </h3>
 
                     <div className="overflow-x-auto">
@@ -1679,34 +2027,106 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                             <th className="pb-3 pl-2">Financial metric</th>
                             {benchmarkedDocs.map((doc) => (
                               <th key={doc.id} className="pb-3 text-right pr-2">
-                                <div className="font-bold text-slate-200">{doc.companyName}</div>
-                                <div className="text-[10px] text-slate-500 lowercase">{doc.period}</div>
+                                <div className="font-bold text-slate-200">
+                                  {doc.companyName}
+                                </div>
+                                <div className="text-[10px] text-slate-500 lowercase">
+                                  {doc.period}
+                                </div>
                               </th>
                             ))}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-900/60 font-medium">
                           {[
-                            { name: "Revenue ($ Millions)", key: "revenue", format: "currency" },
-                            { name: "EBITDA ($ Millions)", key: "ebitda", format: "currency" },
-                            { name: "Net Income ($ Millions)", key: "netIncome", format: "currency" },
-                            { name: "Revenue Growth (%)", key: "revenueGrowth", format: "growth" },
-                            { name: "Gross Margin %", key: "grossMargin", format: "percent" },
-                            { name: "Operating Margin %", key: "operatingMargin", format: "percent" },
-                            { name: "EBITDA Margin %", key: "ebitdaMargin", format: "percent" },
-                            { name: "Net Margin %", key: "netMargin", format: "percent" },
-                            { name: "Cash & Equivalents ($M)", key: "cashAndEquivalents", format: "currency" },
-                            { name: "Total Debt ($M)", key: "totalDebt", format: "currency" },
-                            { name: "Net Debt ($M)", key: "netDebt", format: "currency" },
-                            { name: "Capital Expenditure ($M)", key: "capex", format: "currency" },
-                            { name: "Free Cash Flow ($M)", key: "freeCashFlow", format: "currency" },
-                            { name: "Capex / Revenue %", key: "capexAsPctRevenue", format: "percent" },
-                            { name: "Earnings Per Share (EPS)", key: "eps", format: "eps" },
+                            {
+                              name: "Revenue ($ Millions)",
+                              key: "revenue",
+                              format: "currency",
+                            },
+                            {
+                              name: "EBITDA ($ Millions)",
+                              key: "ebitda",
+                              format: "currency",
+                            },
+                            {
+                              name: "Net Income ($ Millions)",
+                              key: "netIncome",
+                              format: "currency",
+                            },
+                            {
+                              name: "Revenue Growth (%)",
+                              key: "revenueGrowth",
+                              format: "growth",
+                            },
+                            {
+                              name: "Gross Margin %",
+                              key: "grossMargin",
+                              format: "percent",
+                            },
+                            {
+                              name: "Operating Margin %",
+                              key: "operatingMargin",
+                              format: "percent",
+                            },
+                            {
+                              name: "EBITDA Margin %",
+                              key: "ebitdaMargin",
+                              format: "percent",
+                            },
+                            {
+                              name: "Net Margin %",
+                              key: "netMargin",
+                              format: "percent",
+                            },
+                            {
+                              name: "Cash & Equivalents ($M)",
+                              key: "cashAndEquivalents",
+                              format: "currency",
+                            },
+                            {
+                              name: "Total Debt ($M)",
+                              key: "totalDebt",
+                              format: "currency",
+                            },
+                            {
+                              name: "Net Debt ($M)",
+                              key: "netDebt",
+                              format: "currency",
+                            },
+                            {
+                              name: "Capital Expenditure ($M)",
+                              key: "capex",
+                              format: "currency",
+                            },
+                            {
+                              name: "Free Cash Flow ($M)",
+                              key: "freeCashFlow",
+                              format: "currency",
+                            },
+                            {
+                              name: "Capex / Revenue %",
+                              key: "capexAsPctRevenue",
+                              format: "percent",
+                            },
+                            {
+                              name: "Earnings Per Share (EPS)",
+                              key: "eps",
+                              format: "eps",
+                            },
                           ].map((item) => (
-                            <tr key={item.name} className="hover:bg-slate-900/20">
-                              <td className="py-3 pl-2 text-slate-300 font-semibold">{item.name}</td>
+                            <tr
+                              key={item.name}
+                              className="hover:bg-slate-900/20"
+                            >
+                              <td className="py-3 pl-2 text-slate-300 font-semibold">
+                                {item.name}
+                              </td>
                               {benchmarkedDocs.map((doc) => {
-                                const derived = calculateDerivedMetrics(documents, doc);
+                                const derived = calculateDerivedMetrics(
+                                  documents,
+                                  doc,
+                                );
                                 const val =
                                   item.key === "revenueGrowth"
                                     ? derived.revenueGrowth
@@ -1718,11 +2138,18 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                                           ? derived.netDebt
                                           : item.key === "capexAsPctRevenue"
                                             ? derived.capexAsPctRevenue
-                                            : doc.financials[item.key as keyof Financials];
-                                const growthLabel = derived.revenueGrowthLabel ? ` ${derived.revenueGrowthLabel}` : "";
+                                            : doc.financials[
+                                                item.key as keyof Financials
+                                              ];
+                                const growthLabel = derived.revenueGrowthLabel
+                                  ? ` ${derived.revenueGrowthLabel}`
+                                  : "";
 
                                 return (
-                                  <td key={doc.id} className="py-3 text-right pr-2 font-bold text-slate-100">
+                                  <td
+                                    key={doc.id}
+                                    className="py-3 text-right pr-2 font-bold text-slate-100"
+                                  >
                                     {val === null || val === undefined
                                       ? "N/A"
                                       : item.format === "growth"
@@ -1780,7 +2207,6 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                       })()}
                     </div>
                   </div>
-
                 </div>
               ) : (
                 <div className="flex min-h-[320px] items-center justify-center px-1 py-4 sm:min-h-[380px]">
@@ -1792,9 +2218,12 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                     {documents.length === 0 ? (
                       <div className="flex flex-col items-center gap-4">
                         <div className="space-y-2">
-                          <p className="text-lg font-semibold text-slate-200">No benchmark data available</p>
+                          <p className="text-lg font-semibold text-slate-200">
+                            No benchmark data available
+                          </p>
                           <p className="mx-auto max-w-md text-sm leading-relaxed text-slate-400">
-                            Upload financial documents or click Load Test Presets to compare companies.
+                            Upload financial documents or click Load Test
+                            Presets to compare companies.
                           </p>
                         </div>
 
@@ -1808,9 +2237,12 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <p className="text-lg font-semibold text-slate-200">Select at least one company to run benchmarking.</p>
+                        <p className="text-lg font-semibold text-slate-200">
+                          Select at least one company to run benchmarking.
+                        </p>
                         <p className="mx-auto max-w-md text-sm leading-relaxed text-slate-400">
-                          Choose one or more companies from the header above to populate the comparison matrix and charts.
+                          Choose one or more companies from the header above to
+                          populate the comparison matrix and charts.
                         </p>
                       </div>
                     )}
@@ -1823,11 +2255,15 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
           {/* TAB 6: INVESTMENT MEMO */}
           {activeTab === "memo" && (
             <div className="flex flex-col gap-6">
-              
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-100">Structured Investment Memo</h2>
-                  <p className="text-slate-400 text-sm">Generate comprehensive buy-side investment memos detailing bull/bear arguments.</p>
+                  <h2 className="text-2xl font-bold text-slate-100">
+                    Structured Investment Memo
+                  </h2>
+                  <p className="text-slate-400 text-sm">
+                    Generate comprehensive buy-side investment memos detailing
+                    bull/bear arguments.
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -1851,7 +2287,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                   >
                     {generatingMemo ? (
                       <>
-                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Generating...
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />{" "}
+                        Generating...
                       </>
                     ) : (
                       <>
@@ -1867,7 +2304,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                 <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
                   <div className="flex items-center justify-between border-b border-slate-900 pb-3">
                     <h3 className="font-bold text-slate-200 text-lg flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-emerald-400" /> Draft Memo
+                      <FileText className="h-5 w-5 text-emerald-400" /> Draft
+                      Memo
                     </h3>
 
                     <div className="flex gap-2">
@@ -1877,7 +2315,8 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                       >
                         {copied ? (
                           <>
-                            <Check className="h-3.5 w-3.5 text-emerald-400" /> Copied
+                            <Check className="h-3.5 w-3.5 text-emerald-400" />{" "}
+                            Copied
                           </>
                         ) : (
                           <>
@@ -1899,22 +2338,57 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                   <div className="prose prose-invert max-w-none text-xs text-slate-300 leading-relaxed font-sans space-y-4 prose-headings:text-slate-100 prose-a:text-emerald-400 p-4 bg-slate-900/10 rounded-xl border border-slate-900 max-h-[600px] overflow-y-auto">
                     {memoMarkdown.split("\n").map((line, idx) => {
                       if (line.startsWith("# ")) {
-                        return <h1 key={idx} className="text-xl font-extrabold text-slate-100 border-b border-slate-900 pb-2 pt-4">{line.replace("# ", "")}</h1>;
+                        return (
+                          <h1
+                            key={idx}
+                            className="text-xl font-extrabold text-slate-100 border-b border-slate-900 pb-2 pt-4"
+                          >
+                            {line.replace("# ", "")}
+                          </h1>
+                        );
                       }
                       if (line.startsWith("## ")) {
-                        return <h2 key={idx} className="text-base font-bold text-slate-200 pt-3 border-b border-slate-900/60 pb-1">{line.replace("## ", "")}</h2>;
+                        return (
+                          <h2
+                            key={idx}
+                            className="text-base font-bold text-slate-200 pt-3 border-b border-slate-900/60 pb-1"
+                          >
+                            {line.replace("## ", "")}
+                          </h2>
+                        );
                       }
                       if (line.startsWith("### ")) {
-                        return <h3 key={idx} className="text-sm font-bold text-emerald-400 pt-2">{line.replace("### ", "")}</h3>;
+                        return (
+                          <h3
+                            key={idx}
+                            className="text-sm font-bold text-emerald-400 pt-2"
+                          >
+                            {line.replace("### ", "")}
+                          </h3>
+                        );
                       }
                       if (line.startsWith("- ")) {
-                        return <li key={idx} className="ml-4 list-disc text-slate-300">{line.replace("- ", "")}</li>;
+                        return (
+                          <li
+                            key={idx}
+                            className="ml-4 list-disc text-slate-300"
+                          >
+                            {line.replace("- ", "")}
+                          </li>
+                        );
                       }
                       if (line.startsWith("|") && line.endsWith("|")) {
                         // Simple table parser for visual comfort
-                        const cells = line.split("|").map(c => c.trim()).filter(c => c !== "");
-                        const isHeader = line.includes("---") || idx === 0 || (idx > 0 && memoMarkdown.split("\n")[idx-1].startsWith("#"));
-                        
+                        const cells = line
+                          .split("|")
+                          .map((c) => c.trim())
+                          .filter((c) => c !== "");
+                        const isHeader =
+                          line.includes("---") ||
+                          idx === 0 ||
+                          (idx > 0 &&
+                            memoMarkdown.split("\n")[idx - 1].startsWith("#"));
+
                         if (line.includes("---")) {
                           return null; // skip divider lines in this primitive renderer
                         }
@@ -1923,33 +2397,52 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
                           <div
                             key={idx}
                             className={`grid p-2 gap-2 text-[11px] ${
-                              isHeader ? "bg-slate-900 font-bold border-b border-slate-800" : "hover:bg-slate-900/30"
+                              isHeader
+                                ? "bg-slate-900 font-bold border-b border-slate-800"
+                                : "hover:bg-slate-900/30"
                             }`}
-                            style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))` }}
+                            style={{
+                              gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))`,
+                            }}
                           >
                             {cells.map((cell, cIdx) => (
-                              <span key={cIdx} className={cIdx > 0 ? "text-right" : "text-left"}>{cell.replace(/\*\*/g, "")}</span>
+                              <span
+                                key={cIdx}
+                                className={
+                                  cIdx > 0 ? "text-right" : "text-left"
+                                }
+                              >
+                                {cell.replace(/\*\*/g, "")}
+                              </span>
                             ))}
                           </div>
                         );
                       }
-                      return <p key={idx} className="my-1.5">{line}</p>;
+                      return (
+                        <p key={idx} className="my-1.5">
+                          {line}
+                        </p>
+                      );
                     })}
                   </div>
                 </div>
               ) : (
                 <div className="bg-slate-950/40 p-12 rounded-2xl border border-slate-900 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
                   <FileText className="h-10 w-10 text-slate-700" />
-                  <p className="text-sm font-semibold text-slate-400">Generate Investment Memo</p>
+                  <p className="text-sm font-semibold text-slate-400">
+                    Generate Investment Memo
+                  </p>
                   <p className="text-xs text-slate-500 max-w-sm">
-                    Select a target document in the dropdown above, and click <strong>Generate Memo</strong>. 
-                    If you choose the preset <strong>Tesla, Inc. (FY 2024)</strong>, it will automatically populate a high-fidelity investment memo with grounded metrics.
+                    Select a target document in the dropdown above, and click{" "}
+                    <strong>Generate Memo</strong>. If you choose the preset{" "}
+                    <strong>Tesla, Inc. (FY 2024)</strong>, it will
+                    automatically populate a high-fidelity investment memo with
+                    grounded metrics.
                   </p>
                 </div>
               )}
             </div>
           )}
-
         </section>
       </main>
 
