@@ -1545,6 +1545,131 @@ Tesla's financial statements show a clear deceleration in revenue growth alongsi
             </div>
           )}
 
+          {/* TAB 6: INVESTMENT MEMO */}
+          {activeTab === "memo" && (
+            <div className="flex flex-col gap-6">
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-100">Structured Investment Memo</h2>
+                  <p className="text-slate-400 text-sm">Generate comprehensive buy-side investment memos detailing bull/bear arguments.</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <select
+                    value={memoDocId}
+                    onChange={(e) => setMemoDocId(e.target.value)}
+                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 font-semibold focus:outline-none"
+                  >
+                    <option value="">— Select Target —</option>
+                    {documents.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.companyName} ({d.period})
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    onClick={handleGenerateMemo}
+                    disabled={generatingMemo || !memoDocId}
+                    className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg transition-all flex items-center gap-2"
+                  >
+                    {generatingMemo ? (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Generating...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-3.5 w-3.5" /> Generate Memo
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Memo Output */}
+              {memoMarkdown ? (
+                <div className="bg-slate-950/40 p-6 rounded-2xl border border-slate-900 flex flex-col gap-4">
+                  <div className="flex items-center justify-between border-b border-slate-900 pb-3">
+                    <h3 className="font-bold text-slate-200 text-lg flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-emerald-400" /> Draft Memo
+                    </h3>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleCopyMemo}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 font-semibold"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-emerald-400" /> Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" /> Copy Markdown
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={handleDownloadMemo}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-blue-600 text-white hover:brightness-110 font-semibold"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Download (.md)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Markdown Renderer (Sleek CSS rendering of headings/tables) */}
+                  <div className="prose prose-invert max-w-none text-xs text-slate-300 leading-relaxed font-sans space-y-4 prose-headings:text-slate-100 prose-a:text-emerald-400 p-4 bg-slate-900/10 rounded-xl border border-slate-900 max-h-[600px] overflow-y-auto">
+                    {memoMarkdown.split("\n").map((line, idx) => {
+                      if (line.startsWith("# ")) {
+                        return <h1 key={idx} className="text-xl font-extrabold text-slate-100 border-b border-slate-900 pb-2 pt-4">{line.replace("# ", "")}</h1>;
+                      }
+                      if (line.startsWith("## ")) {
+                        return <h2 key={idx} className="text-base font-bold text-slate-200 pt-3 border-b border-slate-900/60 pb-1">{line.replace("## ", "")}</h2>;
+                      }
+                      if (line.startsWith("### ")) {
+                        return <h3 key={idx} className="text-sm font-bold text-emerald-400 pt-2">{line.replace("### ", "")}</h3>;
+                      }
+                      if (line.startsWith("- ")) {
+                        return <li key={idx} className="ml-4 list-disc text-slate-300">{line.replace("- ", "")}</li>;
+                      }
+                      if (line.startsWith("|") && line.endsWith("|")) {
+                        // Simple table parser for visual comfort
+                        const cells = line.split("|").map(c => c.trim()).filter(c => c !== "");
+                        const isHeader = line.includes("---") || idx === 0 || (idx > 0 && memoMarkdown.split("\n")[idx-1].startsWith("#"));
+                        
+                        if (line.includes("---")) {
+                          return null; // skip divider lines in this primitive renderer
+                        }
+
+                        return (
+                          <div key={idx} className={`grid grid-cols-4 p-2 gap-2 text-[11px] ${
+                            isHeader ? "bg-slate-900 font-bold border-b border-slate-800" : "hover:bg-slate-900/30"
+                          }`}>
+                            {cells.map((cell, cIdx) => (
+                              <span key={cIdx} className={cIdx > 0 ? "text-right" : "text-left"}>{cell.replace(/\*\*/g, "")}</span>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return <p key={idx} className="my-1.5">{line}</p>;
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-slate-950/40 p-12 rounded-2xl border border-slate-900 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+                  <FileText className="h-10 w-10 text-slate-700" />
+                  <p className="text-sm font-semibold text-slate-400">Generate Investment Memo</p>
+                  <p className="text-xs text-slate-500 max-w-sm">
+                    Select a target document in the dropdown above, and click <strong>Generate Memo</strong>. 
+                    If you choose the preset <strong>Tesla, Inc. (FY 2024)</strong>, it will automatically populate a high-fidelity investment memo with grounded metrics.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
         </section>
       </main>
