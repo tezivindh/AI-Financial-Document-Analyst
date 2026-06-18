@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030712;
-  --foreground: #f3f4f6;
-  --card: #0b1329;
-  --card-border: #1e293b;
-  --accent: #10b981;
-  --accent-secondary: #3b82f6;
-  --accent-danger: #ef4444;
+  --background: #030712; /* Deep space black */
+  --foreground: #f3f4f6; /* Off white */
+  --card: #0b1329; /* Deep navy card */
+  --card-border: #1e293b; /* Slate border */
+  --accent: #10b981; /* Emerald green for growth */
+  --accent-secondary: #3b82f6; /* Blue for highlights */
+  --accent-danger: #ef4444; /* Red for risks */
   --font-sans: var(--font-geist-sans), sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 }
@@ -33,6 +33,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Glassmorphism card utility */
 .glass-panel {
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(12px);
@@ -40,7 +41,53 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #030712; }
-::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #334155; }
+/* Customized scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #030712;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Glow animation */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.glow-bg {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.05) 50%, transparent 100%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: pulseGlow 8s infinite ease-in-out;
+}
+
+.glow-bg-red {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.08) 0%, rgba(249, 115, 22, 0.03) 60%, transparent 100%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: pulseGlow 10s infinite ease-in-out;
+}
