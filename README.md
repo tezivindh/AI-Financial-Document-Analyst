@@ -169,4 +169,6 @@ The built-in presets and app flows are designed to satisfy the assignment criter
 
 ## License
 
-This project is built for educational and demonstration purposes.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+This project is built for educational and demonstration purposes as part of a college curriculum.
